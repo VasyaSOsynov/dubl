@@ -77,7 +77,15 @@
   @media (min-width: 520px) { .cells { grid-template-columns: repeat(3, 1fr); } }
   .cell { display: flex; align-items: center; gap: 9px; padding: 11px 10px; background: var(--panel); min-width: 0; }
   .cell .emo { flex: none; font-size: 22px; }
-  .cell span:last-child { min-width: 0; color: var(--bright); font-size: 12px; line-height: 1.3; }
+  .cell .cn { min-width: 0; color: var(--bright); font-size: 12px; line-height: 1.3; }
+  .tags { display: block; margin-top: 3px; font-size: 9.5px; font-weight: bold; letter-spacing: .3px; text-transform: uppercase; }
+  .tags .hot { color: var(--accent); }
+  .tags .new { color: var(--link); }
+  .tags .duo { color: #cc5ac0; }
+  .tabs { display: flex; gap: 6px; padding: 8px 10px; overflow-x: auto; white-space: nowrap; border-top: 1px solid var(--line); scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; padding: 5px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--cell); font-size: 12px; }
+  .tab.on { border-color: var(--accent); color: var(--accent); }
 
   .step { display: flex; gap: 10px; padding: 9px 12px; }
   .step b { flex: none; color: var(--accent); }
@@ -135,7 +143,7 @@
   "use strict";
 
   // ---------- Шаблоны: генерирует tools/webapp.py из TEMPLATES в dubl_bot.py ----------
-  const TEMPLATES = /*TEMPLATES*/[{"id": "neon", "emoji": "💃", "ru": ["Танец под неоном", "Вы танцуете на крыше ночного города в неоновых огнях."], "en": ["Neon dance", "You dance on a night-city rooftop in neon lights."]}, {"id": "hero", "emoji": "🦸", "ru": ["Супергерой", "Плащ развевается на ветру, вы стоите на краю небоскрёба на закате."], "en": ["Superhero", "Cape in the wind, you stand on the edge of a skyscraper at sunset."]}, {"id": "action", "emoji": "💥", "ru": ["Сцена из боевика", "Вы уходите от огромного взрыва в замедленной съёмке."], "en": ["Action scene", "You walk away from a huge explosion in slow motion."]}, {"id": "yacht", "emoji": "🛥", "ru": ["На яхте", "Вы отдыхаете на палубе яхты в открытом море, солнце и волны."], "en": ["On a yacht", "You relax on a yacht deck in the open sea, sun and waves."]}, {"id": "winter", "emoji": "❄️", "ru": ["Зимняя сказка", "Снежный лес, падают снежинки, тёплые огоньки вокруг."], "en": ["Winter tale", "A snowy forest, falling snowflakes, warm lights around."]}, {"id": "space", "emoji": "🚀", "ru": ["Космонавт", "Вы парите в невесомости на космической станции, за окном Земля."], "en": ["Astronaut", "You float weightless on a space station with Earth outside the window."]}, {"id": "dragon", "emoji": "🐉", "ru": ["Фэнтези", "Вы летите на драконе над горами и облаками."], "en": ["Fantasy", "You fly on a dragon over mountains and clouds."]}, {"id": "stage", "emoji": "🎤", "ru": ["Звезда сцены", "Огромный концерт: прожекторы, конфетти и ревущая толпа."], "en": ["Stage star", "A huge concert: spotlights, confetti and a roaring crowd."]}, {"id": "racer", "emoji": "🏎", "ru": ["Гонщик", "Вы мчитесь на спорткаре по ночному городу."], "en": ["Racer", "You speed through a night city in a sports car."]}, {"id": "cartoon", "emoji": "🧸", "ru": ["Мультфильм", "Вы становитесь героем 3D-мультфильма."], "en": ["Cartoon", "You become a 3D cartoon character."]}, {"id": "retro", "emoji": "🎞", "ru": ["Старое кино", "Чёрно-белый фильм 1920-х: зерно плёнки и мерцание."], "en": ["Old movie", "A 1920s black-and-white film: film grain and flicker."]}, {"id": "petals", "emoji": "🌹", "ru": ["Романтика", "Вокруг вас кружатся лепестки роз в солнечном саду."], "en": ["Romance", "Rose petals swirl around you in a sunny garden."]}]/*/TEMPLATES*/;
+  const TEMPLATES = /*TEMPLATES*/[{"id": "gasstation", "emoji": "💃", "ru": ["Танцы на заправке", "Ночная заправка, неон и зажигательный танец у колонки."], "en": ["Gas station dance", "A gas station at night, neon lights and a fiery dance by the pump."], "cat": "dance", "tag": "hot"}, {"id": "tecktonik", "emoji": "🕺", "ru": ["Тектоник", "Резкие движения руками под стробоскопы — как в клубах 2008-го."], "en": ["Tecktonik", "Sharp arm moves under strobe lights — like the clubs of 2008."], "cat": "dance"}, {"id": "duodance", "emoji": "👯", "ru": ["Танец вдвоём", "Синхронный трендовый танец с другом или подругой."], "en": ["Dance for two", "A synchronized trending dance with a friend."], "cat": "dance", "people": 2}, {"id": "sky3m", "emoji": "🏍", "ru": ["Три метра над уровнем неба", "Романтика на мотоцикле: вы вдвоём мчитесь по ночному шоссе."], "en": ["Three meters above the sky", "Motorcycle romance: the two of you racing down a night highway."], "cat": "scene", "tag": "hot", "people": 2}, {"id": "shards", "emoji": "✨", "ru": ["Пройтись по осколкам", "Эффектный выход вдвоём, вокруг в замедленной съёмке летит стекло."], "en": ["Walk through the shards", "A stunning entrance for two with glass flying in slow motion."], "cat": "scene", "people": 2}, {"id": "beast", "emoji": "🐺", "ru": ["Эпичный вылет зверя", "Из-за вашей спины выпрыгивает огромный волк — эпично и неожиданно."], "en": ["Epic beast leap", "A huge wolf leaps out from behind you — epic and unexpected."], "cat": "fx", "tag": "hot"}, {"id": "hands", "emoji": "🙌", "ru": ["Тренд с руками", "Из темноты к вам тянутся десятки рук — стильно и драматично."], "en": ["Hands trend", "Dozens of hands reach for you from the dark — stylish and dramatic."], "cat": "fx", "tag": "hot"}, {"id": "heart", "emoji": "🖤", "ru": ["Волосы сердцем", "Волосы развеваются и складываются в сердце — чёрно-белая эстетика."], "en": ["Heart-shaped hair", "Hair flows and forms a heart — black-and-white aesthetics."], "cat": "fx", "tag": "hot"}, {"id": "lights", "emoji": "🚘", "ru": ["Свет фонарей", "Ночь, фары машины выхватывают вас из темноты."], "en": ["Headlights", "Night, a car's headlights pull you out of the darkness."], "cat": "fx", "tag": "hot"}, {"id": "fall", "emoji": "😵", "ru": ["Падение с комментарием", "Нелепое падение в замедленном повторе — осталось наложить комментарий."], "en": ["Fall with commentary", "A clumsy fall in a slow-motion replay — just add the commentary."], "cat": "fx", "tag": "hot"}, {"id": "zombie", "emoji": "🧟", "ru": ["Зомби", "Вы превращаетесь в зомби посреди туманной ночной улицы."], "en": ["Zombie", "You turn into a zombie on a foggy night street."], "cat": "fx", "tag": "hot"}, {"id": "spin", "emoji": "🔄", "ru": ["Вращение на 360", "Камера облетает вас по кругу — эффектный кадр как из клипа."], "en": ["360 spin", "The camera circles around you — a music-video shot."], "cat": "fx", "tag": "new"}, {"id": "freeze", "emoji": "⏸", "ru": ["Время замерло", "Всё вокруг застыло: люди, птицы, капли — двигаетесь только вы."], "en": ["Time stopped", "Everything freezes: people, birds, drops — only you move."], "cat": "fx"}, {"id": "outfit", "emoji": "👗", "ru": ["Поменять одежду", "Щелчок пальцами — и на вас новый образ."], "en": ["Outfit change", "A snap of the fingers — and you're in a new look."], "cat": "fx"}, {"id": "eyes", "emoji": "👁", "ru": ["На фоне ваших глаз", "За вами — огромный крупный план ваших же глаз."], "en": ["Your eyes behind you", "A giant close-up of your own eyes behind you."], "cat": "fx"}, {"id": "wings", "emoji": "🪽", "ru": ["Сбросить крылья", "Ангельские крылья рассыпаются перьями на ветру."], "en": ["Shed the wings", "Angel wings fall apart into feathers in the wind."], "cat": "fx"}, {"id": "ropes", "emoji": "⛓", "ru": ["Разорвать верёвки", "Одним рывком вы рвёте верёвки — мощно и эпично."], "en": ["Break the ropes", "One powerful move and the ropes snap — epic."], "cat": "fx"}, {"id": "cake", "emoji": "🎂", "ru": ["Торт в лицо", "Внезапный торт в лицо — крем во все стороны."], "en": ["Cake in the face", "A sudden cake in the face — cream everywhere."], "cat": "fx"}, {"id": "gothic", "emoji": "🦇", "ru": ["Готическая сказка", "Мрачная сказка: огромная луна, кривые деревья и полоски."], "en": ["Gothic fairy tale", "A dark fairy tale: a giant moon, twisted trees and stripes."], "cat": "fx"}, {"id": "petknight", "emoji": "🐱", "ru": ["Рыцари с питомцем", "Ваш кот или пёс в сияющих рыцарских доспехах."], "en": ["Pet knight", "Your cat or dog in shining knight armor."], "cat": "fx", "photo": {"ru": "фото питомца", "en": "a photo of your pet"}}, {"id": "snowmobile", "emoji": "🛷", "ru": ["Снегоход из окна машины", "Вид из окна авто: вы гоните рядом на снегоходе по зимнему полю."], "en": ["Snowmobile by the car", "View from a car window: you race alongside on a snowmobile."], "cat": "scene"}, {"id": "storm", "emoji": "⛈", "ru": ["Шторм на скале", "Вы на краю скалы, внизу разбиваются огромные волны."], "en": ["Storm on the cliff", "You stand on a cliff edge as huge waves crash below."], "cat": "scene", "tag": "new"}, {"id": "yacht", "emoji": "🥂", "ru": ["День рождения на яхте", "Праздник на яхте: торт с бенгальскими огнями и ночной город."], "en": ["Birthday on a yacht", "A yacht party: a cake with sparklers and city lights."], "cat": "scene", "tag": "new"}, {"id": "prison", "emoji": "🔓", "ru": ["Выбраться из камеры", "Побег из тюремной камеры: дым, решётки и свобода."], "en": ["Escape the cell", "A prison break: smoke, bars and freedom."], "cat": "scene"}, {"id": "flamingo", "emoji": "🦩", "ru": ["Фламинго в бассейне", "Вы на надувном фламинго в бассейне на крыше небоскрёба."], "en": ["Flamingo pool", "You on an inflatable flamingo in a rooftop pool."], "cat": "scene"}, {"id": "plank", "emoji": "🌊", "ru": ["Упасть с доски", "Шаг по узкой доске над водой — и плюх!"], "en": ["Off the plank", "A step along a narrow plank over the water — and splash!"], "cat": "scene"}, {"id": "carousel", "emoji": "🎠", "ru": ["Ночная карусель", "Огни ночного парка, вы кружитесь на старой карусели."], "en": ["Night carousel", "Night park lights as you spin on an old carousel."], "cat": "scene"}, {"id": "runway", "emoji": "👠", "ru": ["Вы на подиуме", "Проход по подиуму модного показа под вспышки камер."], "en": ["On the runway", "A fashion show catwalk under camera flashes."], "cat": "scene"}, {"id": "castle", "emoji": "🏰", "ru": ["Сказочный замок", "Вечерний сказочный замок и салют над вами."], "en": ["Fairy-tale castle", "An evening fairy-tale castle with fireworks above you."], "cat": "scene"}, {"id": "bag", "emoji": "👜", "ru": ["Достать из сумки", "Из маленькой сумочки вы достаёте что-то невероятно большое."], "en": ["Out of the bag", "You pull something impossibly big out of a tiny bag."], "cat": "scene"}, {"id": "football", "emoji": "⚽", "ru": ["Сыграть в футбол", "Эффектный удар по мячу на пляже в замедленной съёмке."], "en": ["Play football", "A spectacular kick on the beach in slow motion."], "cat": "scene"}]/*/TEMPLATES*/;
 
   const I18N = {
     ru: {
@@ -152,13 +160,17 @@
       enh_t: "Улучшить качество", enh_d: "Старое или размытое фото станет чётким и крупным",
       free_t: "Бесплатное видео", free_d: "Облегчённая модель, ролик ~4 сек",
       on_balance: "на балансе: {n}", for_you: "бесплатно", left: "осталось: {n}", left_none: "завтра", daily: "каждый день",
-      tpl_h: "Шаблоны", tpl_sub: "Готовые сцены — останется прислать только своё фото.",
+      tpl_h: "🔥 Шаблоны в тренде", tpl_sub: "То, что сейчас залетает в TikTok и Reels. Выберите сцену — останется прислать только своё фото.",
       meta: "Видео {vs} секунд",
-      go: "Сделать с моим фото", go_balance: "спишется 1 видео", go_free_staff: "бесплатно",
+      tabs: { all: "Все", hot: "🔥 Топ", dance: "Танцы", duo: "Вдвоём", fx: "Эффекты", scene: "Сцены" },
+      tags: { hot: "топ", new: "новинка", duo: "вдвоём" },
+      need2: "👥 Нужно 2 фото: ваше и второго человека. Только в полном качестве.",
+      need_photo: "📸 Нужно: {what}.",
+      go: "Сделать с моим фото", go_duo: "Сделать с нашими фото", go_balance: "спишется 1 видео", go_free_staff: "бесплатно",
       free: "Бесплатно", free_n: "Бесплатно · осталось {n}",
       note: "Дальше — в чате с ботом: он попросит фото и пришлёт видео.",
       how_h: "Как это работает",
-      how: ["Выберите, что сделать, — здесь или в меню бота.",
+      how: ["Выберите шаблон или функцию — прямо здесь, в приложении.",
             "Подтвердите и оплатите звёздами ⭐ прямо в чате.",
             "Пришлите фото — через пару минут придёт результат."],
       faq_h: "Вопросы",
@@ -190,13 +202,17 @@
       enh_t: "Enhance quality", enh_d: "An old or blurry photo becomes sharp and large",
       free_t: "Free video", free_d: "Lighter model, ~4-second clip",
       on_balance: "on balance: {n}", for_you: "free", left: "left: {n}", left_none: "tomorrow", daily: "every day",
-      tpl_h: "Templates", tpl_sub: "Ready-made scenes — just send your photo.",
+      tpl_h: "🔥 Trending templates", tpl_sub: "What's going viral on TikTok and Reels right now. Pick a scene — just send your photo.",
       meta: "{vs}-second video",
-      go: "Make it with my photo", go_balance: "uses 1 video", go_free_staff: "free",
+      tabs: { all: "All", hot: "🔥 Top", dance: "Dances", duo: "For two", fx: "Effects", scene: "Scenes" },
+      tags: { hot: "top", new: "new", duo: "for two" },
+      need2: "👥 Needs 2 photos: yours and the second person's. Full quality only.",
+      need_photo: "📸 Needs {what}.",
+      go: "Make it with my photo", go_duo: "Make it with our photos", go_balance: "uses 1 video", go_free_staff: "free",
       free: "Free", free_n: "Free · {n} left",
       note: "Next steps happen in the chat: the bot will ask for a photo and send the video.",
       how_h: "How it works",
-      how: ["Pick what to make — here or in the bot menu.",
+      how: ["Pick a template or a feature — right here in the app.",
             "Confirm and pay with Telegram Stars ⭐ right in the chat.",
             "Send a photo — get the result in a couple of minutes."],
       faq_h: "Questions",
@@ -281,6 +297,31 @@
     return `<span class="rp">${esc(T.left_none)}</span>`;
   }
 
+  // Разделы шаблонов: «топ» и «вдвоём» собираются по значкам, остальные — по полю cat
+  const FILTERS = ["all", "hot", "dance", "duo", "fx", "scene"];
+  let filter = "all";
+  const isDuo = t => t.people === 2;
+  const matches = (t, f) => f === "all" || (f === "hot" ? t.tag === "hot" : f === "duo" ? isDuo(t) : t.cat === f);
+
+  function cellsHtml() {
+    const list = TEMPLATES.filter(t => matches(t, filter));
+    const cols = window.matchMedia("(min-width: 520px)").matches ? 3 : 2;
+    const blanks = (cols - list.length % cols) % cols;  // пустые ячейки, чтобы последний ряд не зиял серым
+    return list.map(t => {
+      const tags = [t.tag && `<span class="${esc(t.tag)}">${esc(T.tags[t.tag] || t.tag)}</span>`,
+                    isDuo(t) && `<span class="duo">${esc(T.tags.duo)}</span>`].filter(Boolean).join(" · ");
+      return `<button class="cell" data-tpl="${esc(t.id)}">${emo(t.emoji)}<span class="cn">${esc(t[lang][0])}` +
+             `${tags ? `<small class="tags">${tags}</small>` : ""}</span></button>`;
+    }).join("") + `<span class="cell" aria-hidden="true"></span>`.repeat(blanks);
+  }
+
+  function setFilter(f) {
+    filter = f;
+    haptic("select");
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.filter === f));
+    document.getElementById("cells").innerHTML = cellsHtml();
+  }
+
   const row = (action, icon, title, desc, right, cls = "") =>
     `<button class="row ${cls}" data-go="${action}"><span class="ri">${emo(icon)}</span>
       <span class="rt"><span class="t">${esc(title)}</span><small>${esc(desc)}</small></span>${right}</button>`;
@@ -294,7 +335,7 @@
           <button class="bell ${freeAvailable() ? "dot" : ""}" data-bell aria-label="${lang === "ru" ? "Уведомления" : "Notifications"}">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
           </button>
-          <button data-scroll="what">${esc(T.nav[0])}</button>
+          <button data-scroll="top">${esc(T.nav[0])}</button>
           <button data-scroll="tpl">${esc(T.nav[1])}</button>
           <button data-scroll="faq">${esc(T.nav[2])}</button>
         </nav>
@@ -313,17 +354,21 @@
       html += `</section>`;
     }
 
+    // Трендовые шаблоны — главное в приложении, поэтому сразу под балансом; вкладки — только непустые разделы
+    const tabs = FILTERS.filter(f => TEMPLATES.some(t => matches(t, f)));
+    html += `<section class="panel" id="tpl"><div class="bar"><span>${label(T.tpl_h)}</span> <small>${TEMPLATES.length}</small></div>
+      <div class="line muted">${esc(T.tpl_sub)}</div>`;
+    if (tabs.length > 2) {
+      html += `<div class="tabs">${tabs.map(f => `<button class="tab ${f === filter ? "on" : ""}" data-filter="${f}">${label(T.tabs[f])}</button>`).join("")}</div>`;
+    }
+    html += `<div class="cells" id="cells">${cellsHtml()}</div></section>`;
+
     html += `<section class="panel" id="what"><div class="bar">${esc(T.what)}</div>`;
     html += row("create", "🎬", T.create_t, fmt(T.create_d, { vs: VS }), price("video"));
     html += row("swap", "🎭", T.swap_t, fmt(T.swap_d, { sw: SW }), price("swap"));
     html += row("enhance", "🪄", T.enh_t, T.enh_d, price("enhance"));
     if (FREE_PER_DAY > 0 || STAFF) html += row("free", "🎁", T.free_t, T.free_d, freePrice(), freeAvailable() || FREE_LEFT === -2 ? "" : "off");
     html += `</section>`;
-
-    html += `<section class="panel" id="tpl"><div class="bar">${esc(T.tpl_h)} <small>${TEMPLATES.length}</small></div>
-      <div class="line muted">${esc(T.tpl_sub)}</div><div class="cells">`;
-    for (const t of TEMPLATES) html += `<button class="cell" data-tpl="${esc(t.id)}">${emo(t.emoji)}<span>${esc(t[lang][0])}</span></button>`;
-    html += `</div></section>`;
 
     html += `<section class="panel"><div class="bar">${esc(T.how_h)}</div>`;
     T.how.forEach((s, i) => { html += `<div class="step"><b>${i + 1}.</b><span>${label(s)}</span></div>`; });
@@ -351,14 +396,16 @@
     let sub = `${PRICE.video} ⭐`;
     if (STAFF) sub = T.go_free_staff;
     else if (HAS_USER && BAL.video > 0) sub = T.go_balance;
-    const free = FREE_PER_DAY > 0 && !STAFF && FREE_LEFT !== 0
+    // Шаблоны на двоих бесплатная модель не умеет (она берёт одно фото)
+    const free = FREE_PER_DAY > 0 && !STAFF && FREE_LEFT !== 0 && !isDuo(t)
       ? `<button class="btn alt" data-go="tplfree-${esc(t.id)}">${emo("🎁")} ${esc(FREE_LEFT > 0 ? fmt(T.free_n, { n: FREE_LEFT }) : T.free)}</button>` : "";
+    const need = isDuo(t) ? T.need2 : (t.photo ? fmt(T.need_photo, { what: t.photo[lang] || t.photo.ru }) : "");
     sheet.innerHTML = `
       <div class="bar"><span id="sheet-title">${esc(title)}</span><button class="close" data-close aria-label="✕">✕</button></div>
       <div class="about"><span class="big">${emo(t.emoji)}</span>
-        <div><p>${esc(desc)}</p><small>${esc(fmt(T.meta, { vs: VS }))}</small></div></div>
+        <div><p>${esc(desc)}</p><small>${esc(fmt(T.meta, { vs: VS }))}</small>${need ? `<small>${label(need)}</small>` : ""}</div></div>
       <div class="actions">
-        <button class="btn main" data-go="tpl-${esc(t.id)}">${esc(T.go)} <small>· ${esc(sub)}</small></button>
+        <button class="btn main" data-go="tpl-${esc(t.id)}">${esc(isDuo(t) ? T.go_duo : T.go)} <small>· ${esc(sub)}</small></button>
         ${free}
       </div>
       <p class="note">${esc(T.note)}</p>`;
@@ -373,9 +420,10 @@
 
   // ---------- События ----------
   document.addEventListener("click", e => {
-    const el = e.target.closest("[data-go],[data-tpl],[data-scroll],[data-close],[data-bell],[data-chat]");
+    const el = e.target.closest("[data-go],[data-tpl],[data-filter],[data-scroll],[data-close],[data-bell],[data-chat]");
     if (!el) return;
     if (el.dataset.tpl) return openSheet(el.dataset.tpl);
+    if (el.dataset.filter) return setFilter(el.dataset.filter);
     if (el.hasAttribute("data-close")) return closeSheet();
     if (el.hasAttribute("data-bell")) { haptic("light"); return toast(freeAvailable() ? T.bell_free : T.bell_none); }
     if (el.hasAttribute("data-chat")) {
