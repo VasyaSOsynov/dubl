@@ -3,170 +3,126 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
 <title>Дубль</title>
 <!-- Мини-приложение бота «Дубль». Шаблоны ниже вписывает tools/webapp.py из dubl_bot.py — вручную их не правьте -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  /* Цвета берём из темы Telegram (--tg-theme-*); запасные — для просмотра в обычном браузере */
+  /* Своя тёмная палитра (не тема Telegram): угольный фон, плоские панели, лаймовый акцент, радужная линия */
   :root {
-    --fb-bg: #f1f2f6; --fb-card: #ffffff; --fb-text: #14161a; --fb-hint: #7d8590;
-    --fb-accent: #6c4dff; --fb-accent-text: #ffffff; --fb-link: #5b3df5;
-    --bg: var(--tg-theme-secondary-bg-color, var(--fb-bg));
-    --card: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, var(--fb-card)));
-    --text: var(--tg-theme-text-color, var(--fb-text));
-    --hint: var(--tg-theme-hint-color, var(--fb-hint));
-    --accent: var(--tg-theme-button-color, var(--fb-accent));
-    --accent-text: var(--tg-theme-button-text-color, var(--fb-accent-text));
-    --link: var(--tg-theme-link-color, var(--fb-link));
-    --sep: rgba(127, 127, 127, .18);
-    --radius: 18px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --fb-bg: #0e1014; --fb-card: #1a1d23; --fb-text: #f1f2f4; --fb-hint: #8b929c;
-            --fb-accent: #7b5cff; --fb-link: #9d86ff; }
+    --bg: #151515;
+    --panel: #262626;
+    --bar: #2f2f2f;
+    --cell: #202020;
+    --line: #3a3a3a;
+    --text: #d8d8d8;
+    --bright: #efefef;
+    --muted: #8e8e8e;
+    --link: #4a93d6;
+    --accent: #9ac31c;
+    --rainbow: linear-gradient(90deg, #37b1da 0%, #cc5ac0 50%, #cce335 100%);
+    --radius: 3px;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
   body {
-    font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
-    overflow-x: hidden;
+    font: 13px/1.45 Verdana, Tahoma, "DejaVu Sans", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overflow-x: hidden;
   }
   button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; text-align: inherit; }
-  .app { max-width: 560px; margin: 0 auto; padding: 12px 16px calc(28px + env(safe-area-inset-bottom)); }
-  .press { transition: transform .12s ease; }
-  .press:active { transform: scale(.97); }
+  .topline { position: fixed; top: 0; left: 0; right: 0; height: 2px; background: var(--rainbow); z-index: 5; }
+  .app { max-width: 720px; margin: 0 auto; padding: 14px 10px calc(20px + env(safe-area-inset-bottom)); }
+  .emo { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-style: normal; }
 
-  /* ---------- Шапка ---------- */
-  .hero {
-    position: relative; overflow: hidden; border-radius: 24px; padding: 20px 18px 22px; color: #fff;
-    background: radial-gradient(120% 140% at 0% 0%, #ff4fb8 0%, transparent 55%),
-                radial-gradient(120% 140% at 100% 100%, #ff9a3c 0%, transparent 50%),
-                linear-gradient(135deg, #5a2bff, #2a0f73);
-    min-height: 156px;
-  }
-  .hero h1 { margin: 0; font-size: 28px; line-height: 1.1; letter-spacing: -.5px; }
-  .hero p { margin: 8px 0 0; max-width: 62%; font-size: 14px; opacity: .92; }
-  .hero .badge {
-    display: inline-flex; align-items: center; gap: 6px; margin-bottom: 10px; padding: 4px 10px;
-    border-radius: 999px; background: rgba(255,255,255,.18); font-size: 12px; font-weight: 600;
-  }
-  .reel { position: absolute; right: -6px; top: 14px; width: 40%; height: 130px; pointer-events: none; }
-  .reel span {
-    position: absolute; display: grid; place-items: center; width: 64px; height: 84px; border-radius: 14px;
-    font-size: 30px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.28);
-    box-shadow: 0 8px 24px rgba(0,0,0,.25); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-    animation: float 5s ease-in-out infinite;
-  }
-  .reel span:nth-child(1) { right: 70px; top: 18px; transform: rotate(-12deg); animation-delay: -1s; }
-  .reel span:nth-child(2) { right: 22px; top: 0; transform: rotate(6deg); animation-delay: -2.5s; }
-  .reel span:nth-child(3) { right: 36px; top: 62px; transform: rotate(16deg); animation-delay: -4s; }
-  @keyframes float { 50% { translate: 0 -7px; } }
+  /* ---------- Панели ---------- */
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .panel + .panel { margin-top: 12px; }
+  .bar { padding: 9px 10px; background: var(--bar); color: var(--bright); font-weight: bold; font-size: 12px;
+         border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .bar small { color: var(--muted); font-weight: normal; }
+  .line { padding: 9px 12px; }
+  .line + .line, .row + .row, .kv + .kv, details + details, .step + .step { border-top: 1px solid var(--line); }
+  .muted { color: var(--muted); }
+  a, .link { color: var(--link); text-decoration: none; }
 
-  /* ---------- Секции ---------- */
-  .sec-head { margin: 22px 4px 4px; font-size: 19px; letter-spacing: -.2px; }
-  .sec-sub { margin: 0 4px 12px; color: var(--hint); font-size: 13.5px; }
-  .card { background: var(--card); border-radius: var(--radius); }
+  /* Шапка: логотип, навигация, строка статуса */
+  .logo { padding: 13px 12px 12px; font: 300 22px/1.1 "Segoe UI", "Helvetica Neue", Arial, sans-serif; letter-spacing: -.3px; color: var(--bright); }
+  .logo b { font-weight: 300; color: var(--accent); }
+  .nav { display: flex; align-items: center; gap: 18px; padding: 8px 12px; background: var(--bar);
+         border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 12px; overflow-x: auto; white-space: nowrap; }
+  .nav button { color: var(--bright); }
+  .nav button:active, .nav button.on { color: var(--accent); }
+  .bell { display: grid; place-items: center; width: 18px; height: 18px; position: relative; color: #cfcfcf; }
+  .bell.dot::after { content: ""; position: absolute; top: 0; right: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 
-  .balance { margin-top: 12px; padding: 14px 14px 12px; }
-  .balance .label { color: var(--hint); font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
-  .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
-  .chip { padding: 9px 4px 10px; border-radius: 14px; background: var(--bg); text-align: center; }
-  .chip i { display: block; font-style: normal; font-size: 16px; line-height: 1.2; }
-  .chip b { display: block; margin-top: 2px; font-size: 20px; line-height: 1.1; }
-  .chip small { display: block; margin-top: 3px; color: var(--hint); font-size: 11.5px; line-height: 1.2; }
-  /* Цветные эмодзи и там, где система по умолчанию рисует их контуром (🛥, 🏎 в Telegram Desktop на Windows) */
-  .chip i, .tile .ico, .reel span, .tpl .emo, .sheet .art {
-    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-  }
-  .staff { margin-top: 8px; font-weight: 600; }
+  /* Баланс */
+  .kv { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; }
+  .kv b { color: var(--bright); }
+  .kv b.on { color: var(--accent); }
 
-  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-  .tile { display: flex; flex-direction: column; gap: 6px; padding: 14px; min-height: 150px; background: var(--card); border-radius: var(--radius); }
-  .tile .ico { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; font-size: 22px; color: #fff; }
-  .tile b { font-size: 15px; line-height: 1.2; }
-  .tile small { color: var(--hint); font-size: 12.5px; line-height: 1.3; }
-  .tile .price {
-    margin-top: auto; align-self: flex-start; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
-    background: var(--bg);
-  }
-  .tile .price.on { background: var(--accent); color: var(--accent-text); }
-  .tile.off { opacity: .55; }
+  /* Список действий — как список разделов форума */
+  .row { display: flex; align-items: center; gap: 11px; width: 100%; padding: 11px 12px; }
+  .row:active, .cell:active { background: #2d2d2d; }
+  .ri { flex: none; display: grid; place-items: center; width: 36px; height: 36px; background: var(--cell);
+        border: 1px solid var(--line); border-radius: var(--radius); font-size: 18px; }
+  .rt { flex: 1; min-width: 0; }
+  .rt .t { display: block; color: var(--link); font-weight: bold; }
+  .rt small { display: block; margin-top: 2px; color: var(--muted); font-size: 11.5px; line-height: 1.35; }
+  .rp { flex: none; color: var(--bright); font-size: 12px; font-weight: bold; text-align: right; }
+  .rp.on { color: var(--accent); }
+  .row.off { opacity: .5; }
 
-  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  @media (min-width: 480px) { .grid { grid-template-columns: repeat(3, 1fr); } }
-  .tpl {
-    position: relative; overflow: hidden; aspect-ratio: 3 / 4; border-radius: 16px; color: #fff;
-    display: flex; flex-direction: column; justify-content: flex-end; padding: 10px;
-    box-shadow: 0 6px 18px rgba(0,0,0,.12);
-  }
-  .tpl .emo { position: absolute; inset: 0 0 34% 0; display: grid; place-items: center; font-size: 46px;
-              filter: drop-shadow(0 6px 12px rgba(0,0,0,.3)); }
-  .tpl::after { content: ""; position: absolute; inset: 45% 0 0 0; background: linear-gradient(transparent, rgba(0,0,0,.55)); }
-  .tpl b { position: relative; z-index: 1; font-size: 14px; line-height: 1.2; text-shadow: 0 1px 4px rgba(0,0,0,.35); }
-  .tpl .shine { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.22) 50%, transparent 65%);
-                transform: translateX(-100%); animation: shine 6s ease-in-out infinite; }
-  @keyframes shine { 0%, 70% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  /* Шаблоны — сетка ячеек */
+  .cells { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
+  @media (min-width: 520px) { .cells { grid-template-columns: repeat(3, 1fr); } }
+  .cell { display: flex; align-items: center; gap: 9px; padding: 11px 10px; background: var(--panel); min-width: 0; }
+  .cell .emo { flex: none; font-size: 22px; }
+  .cell span:last-child { min-width: 0; color: var(--bright); font-size: 12px; line-height: 1.3; }
 
-  .steps { margin-top: 10px; padding: 6px 14px; }
-  .step { display: flex; gap: 12px; align-items: center; padding: 10px 0; }
-  .step + .step { border-top: 1px solid var(--sep); }
-  .step .n { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
-             background: var(--accent); color: var(--accent-text); font-weight: 700; font-size: 14px; }
+  .step { display: flex; gap: 10px; padding: 9px 12px; }
+  .step b { flex: none; color: var(--accent); }
 
-  .faq { margin-top: 10px; padding: 2px 14px; }
-  .faq details + details { border-top: 1px solid var(--sep); }
-  .faq summary { list-style: none; display: flex; justify-content: space-between; gap: 10px; padding: 13px 0; font-weight: 600; cursor: pointer; }
-  .faq summary::-webkit-details-marker { display: none; }
-  .faq summary::after { content: "+"; color: var(--hint); font-weight: 400; font-size: 20px; line-height: 1; transition: transform .2s; }
-  .faq details[open] summary::after { transform: rotate(45deg); }
-  .faq p { margin: -4px 0 13px; color: var(--hint); }
+  details summary { list-style: none; display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; color: var(--link); cursor: pointer; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::after { content: "+"; color: var(--muted); }
+  details[open] summary::after { content: "−"; }
+  details p { margin: 0; padding: 0 12px 11px; color: var(--muted); font-size: 12px; }
 
-  .foot { margin: 18px 6px 0; color: var(--hint); font-size: 12.5px; text-align: center; }
+  .foot { display: flex; justify-content: space-between; gap: 10px; }
 
   /* ---------- Карточка шаблона (снизу) ---------- */
-  .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
-  .sheet {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; max-width: 560px; margin: 0 auto;
-    background: var(--card); border-radius: 22px 22px 0 0; padding: 8px 16px calc(18px + env(safe-area-inset-bottom));
-    transform: translateY(105%); transition: transform .26s cubic-bezier(.2,.8,.2,1);
-    max-height: 92vh; overflow-y: auto;
-  }
+  .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; max-width: 720px; margin: 0 auto;
+           background: var(--panel); border: 1px solid var(--line); border-bottom: 0;
+           transform: translateY(105%); transition: transform .24s cubic-bezier(.2,.8,.2,1); max-height: 92vh; overflow-y: auto;
+           padding-bottom: env(safe-area-inset-bottom); }
+  .sheet::before { content: ""; display: block; height: 2px; background: var(--rainbow); }
   .open .backdrop { opacity: 1; pointer-events: auto; }
   .open .sheet { transform: none; }
-  .grab { width: 38px; height: 5px; border-radius: 3px; background: var(--sep); margin: 0 auto 10px; }
-  .sheet .art { position: relative; overflow: hidden; height: 170px; border-radius: 18px; display: grid; place-items: center; font-size: 78px; }
-  .sheet .art .shine { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.25) 50%, transparent 65%);
-                       animation: shine 4s ease-in-out infinite; }
-  .sheet h3 { margin: 14px 0 4px; font-size: 21px; }
-  .sheet .desc { margin: 0; font-size: 15px; }
-  .sheet .meta { margin: 8px 0 14px; color: var(--hint); font-size: 13.5px; }
-  .btn { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 0 16px;
-         border-radius: 14px; font-weight: 700; font-size: 16px; text-align: center; }
-  .btn.main { background: var(--accent); color: var(--accent-text); }
-  .btn.alt { margin-top: 8px; background: var(--bg); color: var(--link); }
-  .btn small { font-weight: 600; opacity: .85; font-size: 13px; }
-  .note { margin: 10px 2px 0; color: var(--hint); font-size: 12.5px; text-align: center; }
+  .sheet .close { color: var(--muted); font-size: 16px; padding: 0 2px; }
+  .sheet .about { display: flex; gap: 12px; align-items: flex-start; padding: 12px; }
+  .sheet .big { flex: none; display: grid; place-items: center; width: 64px; height: 64px; background: var(--cell);
+                border: 1px solid var(--line); border-radius: var(--radius); font-size: 34px; }
+  .sheet .about p { margin: 0; color: var(--bright); }
+  .sheet .about small { display: block; margin-top: 6px; color: var(--muted); font-size: 11.5px; }
+  .actions { padding: 0 12px 12px; display: grid; gap: 8px; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; padding: 0 12px;
+         border-radius: var(--radius); font-weight: bold; font-size: 13px; text-align: center; border: 1px solid var(--line); }
+  .btn.main { background: var(--accent); border-color: #b4dc3a; color: #121212; }
+  .btn.main small { font-weight: normal; opacity: .8; }
+  .btn.alt { background: var(--bar); color: var(--bright); }
+  .btn:active { filter: brightness(.9); }
+  .note { margin: 0; padding: 0 12px 12px; color: var(--muted); font-size: 11.5px; text-align: center; }
 
-  .toast {
-    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 20; translate: -50% 20px;
-    padding: 10px 16px; border-radius: 12px; background: rgba(20,20,24,.92); color: #fff; font-size: 14px;
-    opacity: 0; transition: opacity .2s, translate .2s; pointer-events: none; white-space: nowrap;
-  }
+  .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 20; translate: -50% 16px;
+           padding: 9px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); color: var(--bright);
+           font-size: 12px; opacity: 0; transition: opacity .2s, translate .2s; pointer-events: none; max-width: calc(100% - 32px); }
   .toast.show { opacity: 1; translate: -50% 0; }
-
-  @media (max-width: 360px) {
-    .chips { grid-template-columns: repeat(2, 1fr); }
-    .hero p { max-width: 58%; }
-    .tile { min-height: 140px; padding: 12px; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; transition: none !important; }
-  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 </style>
 </head>
 <body>
+<div class="topline"></div>
 <main class="app" id="app"></main>
 <div id="layer">
   <div class="backdrop" id="backdrop"></div>
@@ -181,36 +137,30 @@
   // ---------- Шаблоны: генерирует tools/webapp.py из TEMPLATES в dubl_bot.py ----------
   const TEMPLATES = /*TEMPLATES*/[{"id": "neon", "emoji": "💃", "ru": ["Танец под неоном", "Вы танцуете на крыше ночного города в неоновых огнях."], "en": ["Neon dance", "You dance on a night-city rooftop in neon lights."]}, {"id": "hero", "emoji": "🦸", "ru": ["Супергерой", "Плащ развевается на ветру, вы стоите на краю небоскрёба на закате."], "en": ["Superhero", "Cape in the wind, you stand on the edge of a skyscraper at sunset."]}, {"id": "action", "emoji": "💥", "ru": ["Сцена из боевика", "Вы уходите от огромного взрыва в замедленной съёмке."], "en": ["Action scene", "You walk away from a huge explosion in slow motion."]}, {"id": "yacht", "emoji": "🛥", "ru": ["На яхте", "Вы отдыхаете на палубе яхты в открытом море, солнце и волны."], "en": ["On a yacht", "You relax on a yacht deck in the open sea, sun and waves."]}, {"id": "winter", "emoji": "❄️", "ru": ["Зимняя сказка", "Снежный лес, падают снежинки, тёплые огоньки вокруг."], "en": ["Winter tale", "A snowy forest, falling snowflakes, warm lights around."]}, {"id": "space", "emoji": "🚀", "ru": ["Космонавт", "Вы парите в невесомости на космической станции, за окном Земля."], "en": ["Astronaut", "You float weightless on a space station with Earth outside the window."]}, {"id": "dragon", "emoji": "🐉", "ru": ["Фэнтези", "Вы летите на драконе над горами и облаками."], "en": ["Fantasy", "You fly on a dragon over mountains and clouds."]}, {"id": "stage", "emoji": "🎤", "ru": ["Звезда сцены", "Огромный концерт: прожекторы, конфетти и ревущая толпа."], "en": ["Stage star", "A huge concert: spotlights, confetti and a roaring crowd."]}, {"id": "racer", "emoji": "🏎", "ru": ["Гонщик", "Вы мчитесь на спорткаре по ночному городу."], "en": ["Racer", "You speed through a night city in a sports car."]}, {"id": "cartoon", "emoji": "🧸", "ru": ["Мультфильм", "Вы становитесь героем 3D-мультфильма."], "en": ["Cartoon", "You become a 3D cartoon character."]}, {"id": "retro", "emoji": "🎞", "ru": ["Старое кино", "Чёрно-белый фильм 1920-х: зерно плёнки и мерцание."], "en": ["Old movie", "A 1920s black-and-white film: film grain and flicker."]}, {"id": "petals", "emoji": "🌹", "ru": ["Романтика", "Вокруг вас кружатся лепестки роз в солнечном саду."], "en": ["Romance", "Rose petals swirl around you in a sunny garden."]}]/*/TEMPLATES*/;
 
-  // Цвета карточек шаблонов; для новых шаблонов цвет подбирается сам
-  const PAINT = {
-    neon: ["#ff2bd6", "#3b1cff"], hero: ["#ff7a18", "#af002d"], action: ["#f83600", "#b31217"],
-    yacht: ["#00c6ff", "#0052d4"], winter: ["#8fb8ff", "#4a5fa8"], space: ["#302b63", "#0f0c29"],
-    dragon: ["#614385", "#1d976c"], stage: ["#fc466b", "#3f5efb"], racer: ["#ef473a", "#232526"],
-    cartoon: ["#f7971e", "#e8508a"], retro: ["#8e8e8e", "#2b2b2b"], petals: ["#e96443", "#904e95"],
-  };
-
   const I18N = {
     ru: {
-      badge: "AI-видео в Telegram",
-      tagline: "Оживлю фото, вставлю ваше лицо в видео и улучшу старые снимки",
-      balance: "Ваш баланс",
-      b_video: "видео", b_swap: "замен лица", b_enh: "улучшений", b_free: "бесплатно сегодня",
-      staff: "♾️ Для вас всё бесплатно и без лимитов",
+      logo: ["дубль", "видео"],
+      nav: ["Главная", "Шаблоны", "Вопросы"],
+      hello: "Вы вошли как {name}.", guest: "Вы не вошли.",
+      intro: "Оживлю фото, вставлю ваше лицо в видео и улучшу старые снимки.",
+      balance: "Баланс",
+      b_video: "🎬 Видео", b_swap: "🎭 Замены лица", b_enh: "🪄 Улучшения фото", b_free: "🎁 Бесплатно сегодня",
+      staff: "Для вас всё бесплатно и без лимитов.",
       what: "Что сделаем?",
       create_t: "Оживить фото", create_d: "Опишите сцену — получите видео на {vs} сек",
       swap_t: "Своё лицо в видео", swap_d: "Лицо с фото — в отрывок из фильма или клипа до {sw} сек",
       enh_t: "Улучшить качество", enh_d: "Старое или размытое фото станет чётким и крупным",
       free_t: "Бесплатное видео", free_d: "Облегчённая модель, ролик ~4 сек",
-      on_balance: "на балансе: {n}", for_you: "бесплатно", left: "осталось: {n}", left_none: "завтра снова", daily: "каждый день",
-      tpl_h: "🔥 Шаблоны", tpl_sub: "Готовые сцены — останется прислать только своё фото",
-      meta: "🎬 Видео {vs} секунд",
-      go: "Сделать с моим фото", go_balance: "спишется 1 видео", go_free_staff: "бесплатно для вас",
-      free: "🎁 Бесплатно", free_n: "🎁 Бесплатно · осталось {n}",
+      on_balance: "на балансе: {n}", for_you: "бесплатно", left: "осталось: {n}", left_none: "завтра", daily: "каждый день",
+      tpl_h: "Шаблоны", tpl_sub: "Готовые сцены — останется прислать только своё фото.",
+      meta: "Видео {vs} секунд",
+      go: "Сделать с моим фото", go_balance: "спишется 1 видео", go_free_staff: "бесплатно",
+      free: "Бесплатно", free_n: "Бесплатно · осталось {n}",
       note: "Дальше — в чате с ботом: он попросит фото и пришлёт видео.",
       how_h: "Как это работает",
-      how: ["Выберите, что сделать, — здесь или в меню бота",
-            "Подтвердите и оплатите звёздами ⭐ прямо в чате",
-            "Пришлите фото — через пару минут придёт результат"],
+      how: ["Выберите, что сделать, — здесь или в меню бота.",
+            "Подтвердите и оплатите звёздами ⭐ прямо в чате.",
+            "Пришлите фото — через пару минут придёт результат."],
       faq_h: "Вопросы",
       faq: [
         ["Сколько ждать?", "Видео — 1–4 минуты, замена лица — 1–5 минут, улучшение фото — до минуты. Когда заказов много, бот покажет место в очереди."],
@@ -220,31 +170,35 @@
         ["Можно со знаменитостью?", "Нет: бот не делает видео с конкретными людьми по имени. Человек в ролике берётся только с фото — и только с его согласия."],
         ["Как оплатить?", "Звёздами Telegram ⭐ прямо в чате: бот пришлёт счёт после подтверждения."],
       ],
+      bell_free: "🎁 Сегодня доступно бесплатное видео",
+      bell_none: "Новых уведомлений нет",
       free_used: "Бесплатное видео на сегодня уже использовано — приходите завтра!",
       going: "Открываю чат с ботом…",
-      foot: "Все генерации идут в чате с ботом. Если что-то не получилось — попытка вернётся на баланс.",
+      foot: "Дубль",
     },
     en: {
-      badge: "AI videos in Telegram",
-      tagline: "I bring photos to life, put your face into videos and enhance old pictures",
-      balance: "Your balance",
-      b_video: "videos", b_swap: "face swaps", b_enh: "enhancements", b_free: "free today",
-      staff: "♾️ Everything is free and unlimited for you",
+      logo: ["dubl", "video"],
+      nav: ["Home", "Templates", "Questions"],
+      hello: "You are logged in as {name}.", guest: "You are not logged in.",
+      intro: "I bring photos to life, put your face into videos and enhance old pictures.",
+      balance: "Balance",
+      b_video: "🎬 Videos", b_swap: "🎭 Face swaps", b_enh: "🪄 Photo enhancements", b_free: "🎁 Free today",
+      staff: "Everything is free and unlimited for you.",
       what: "What shall we make?",
       create_t: "Animate photo", create_d: "Describe a scene — get a {vs}-second video",
       swap_t: "Face in a video", swap_d: "The face from your photo in a movie or music-video clip up to {sw} sec",
       enh_t: "Enhance quality", enh_d: "An old or blurry photo becomes sharp and large",
       free_t: "Free video", free_d: "Lighter model, ~4-second clip",
-      on_balance: "on balance: {n}", for_you: "free", left: "left: {n}", left_none: "back tomorrow", daily: "every day",
-      tpl_h: "🔥 Templates", tpl_sub: "Ready-made scenes — just send your photo",
-      meta: "🎬 {vs}-second video",
-      go: "Make it with my photo", go_balance: "uses 1 video", go_free_staff: "free for you",
-      free: "🎁 Free", free_n: "🎁 Free · {n} left",
+      on_balance: "on balance: {n}", for_you: "free", left: "left: {n}", left_none: "tomorrow", daily: "every day",
+      tpl_h: "Templates", tpl_sub: "Ready-made scenes — just send your photo.",
+      meta: "{vs}-second video",
+      go: "Make it with my photo", go_balance: "uses 1 video", go_free_staff: "free",
+      free: "Free", free_n: "Free · {n} left",
       note: "Next steps happen in the chat: the bot will ask for a photo and send the video.",
       how_h: "How it works",
-      how: ["Pick what to make — here or in the bot menu",
-            "Confirm and pay with Telegram Stars ⭐ right in the chat",
-            "Send a photo — get the result in a couple of minutes"],
+      how: ["Pick what to make — here or in the bot menu.",
+            "Confirm and pay with Telegram Stars ⭐ right in the chat.",
+            "Send a photo — get the result in a couple of minutes."],
       faq_h: "Questions",
       faq: [
         ["How long does it take?", "Video — 1–4 minutes, face swap — 1–5 minutes, photo enhancement — up to a minute. When it's busy, the bot shows your place in the queue."],
@@ -254,17 +208,20 @@
         ["Can I make a video with a celebrity?", "No: the bot doesn't make videos of specific people by name. The person in the video comes only from a photo — and only with their consent."],
         ["How do I pay?", "With Telegram Stars ⭐ right in the chat: the bot sends an invoice after you confirm."],
       ],
+      bell_free: "🎁 A free video is available today",
+      bell_none: "No new notifications",
       free_used: "You've already used today's free video — come back tomorrow!",
       going: "Opening the chat with the bot…",
-      foot: "All generations happen in the chat with the bot. If something fails, your attempt goes back to your balance.",
+      foot: "Dubl",
     },
   };
 
   // ---------- Данные от бота (в адресе кнопки) ----------
   const tg = window.Telegram && window.Telegram.WebApp;
+  const user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
   const q = new URLSearchParams(location.search);
   const int = (k, d) => { const v = parseInt(q.get(k), 10); return Number.isFinite(v) ? v : d; };
-  const tgLang = ((tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code) || navigator.language || "ru").toLowerCase();
+  const tgLang = ((user && user.language_code) || navigator.language || "ru").toLowerCase();
   const lang = I18N[q.get("l")] ? q.get("l") : (/^(ru|uk|be|kk)/.test(tgLang) ? "ru" : "en");
   const T = I18N[lang];
   const BOT = /^[A-Za-z0-9_]{5,32}$/.test(q.get("b") || "") ? q.get("b") : "dublll_video_bot";
@@ -280,13 +237,9 @@
   const fmt = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (k in o ? o[k] : ""));
   const can = v => tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v);
   const haptic = kind => { try { if (can("6.1")) kind === "select" ? tg.HapticFeedback.selectionChanged() : tg.HapticFeedback.impactOccurred(kind); } catch (e) {} };
-
-  function paint(id) {
-    if (PAINT[id]) return PAINT[id];
-    let h = 0; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) % 360;
-    return [`hsl(${h} 85% 58%)`, `hsl(${(h + 50) % 360} 70% 38%)`];
-  }
-  const grad = id => { const [a, b] = paint(id); return `linear-gradient(150deg, ${a}, ${b})`; };
+  // Эмодзи отдельно: у части систем без цветного шрифта они рисуются контуром
+  const emo = (e, cls = "") => `<i class="emo ${cls}">${esc(e)}</i>`;
+  const label = s => { const [first, ...rest] = s.split(" "); return /\p{L}/u.test(first) ? esc(s) : emo(first) + " " + esc(rest.join(" ")); };
 
   let toastTimer;
   function toast(text) {
@@ -294,9 +247,7 @@
     el.textContent = text; el.classList.add("show");
     clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
   }
-  function alertBox(text) {
-    if (can("6.2")) tg.showAlert(text); else toast(text);
-  }
+  const alertBox = text => (can("6.2") ? tg.showAlert(text) : toast(text));
 
   // Кнопка приложения → команда /start <действие> в чате с ботом → бот запускает тот же сценарий, что и его кнопки
   let leaving = false;
@@ -315,75 +266,75 @@
   }
 
   // ---------- Отрисовка ----------
-  function priceBadge(kind) {
-    if (STAFF) return `<span class="price on">${esc(T.for_you)}</span>`;
-    if (HAS_USER && BAL[kind] > 0) return `<span class="price on">${esc(fmt(T.on_balance, { n: BAL[kind] }))}</span>`;
-    return `<span class="price">${PRICE[kind]} ⭐</span>`;
+  const freeAvailable = () => STAFF || (FREE_PER_DAY > 0 && FREE_LEFT !== 0);
+
+  function price(kind) {
+    if (STAFF) return `<span class="rp on">${esc(T.for_you)}</span>`;
+    if (HAS_USER && BAL[kind] > 0) return `<span class="rp on">${esc(fmt(T.on_balance, { n: BAL[kind] }))}</span>`;
+    return `<span class="rp">${PRICE[kind]} ⭐</span>`;
   }
 
-  function freeState() {
-    if (STAFF) return { text: "∞", on: true, off: false };
-    if (FREE_LEFT === -2) return { text: T.daily, on: false, off: false };
-    if (FREE_LEFT > 0) return { text: fmt(T.left, { n: FREE_LEFT }), on: true, off: false };
-    return { text: T.left_none, on: false, off: true };
+  function freePrice() {
+    if (STAFF) return `<span class="rp on">∞</span>`;
+    if (FREE_LEFT === -2) return `<span class="rp">${esc(T.daily)}</span>`;
+    if (FREE_LEFT > 0) return `<span class="rp on">${esc(fmt(T.left, { n: FREE_LEFT }))}</span>`;
+    return `<span class="rp">${esc(T.left_none)}</span>`;
   }
 
-  function tile(action, icon, colors, title, desc, badge, extraClass = "") {
-    return `<button class="tile press ${extraClass}" data-go="${action}">
-      <span class="ico" style="background:linear-gradient(140deg,${colors[0]},${colors[1]})">${icon}</span>
-      <b>${esc(title)}</b><small>${esc(desc)}</small>${badge}</button>`;
-  }
+  const row = (action, icon, title, desc, right, cls = "") =>
+    `<button class="row ${cls}" data-go="${action}"><span class="ri">${emo(icon)}</span>
+      <span class="rt"><span class="t">${esc(title)}</span><small>${esc(desc)}</small></span>${right}</button>`;
 
   function render() {
-    const reel = TEMPLATES.slice(0, 3).map(t => `<span>${esc(t.emoji)}</span>`).join("") || "<span>🎬</span><span>🎭</span><span>🪄</span>";
+    const name = user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : "";
     let html = `
-      <header class="hero">
-        <div class="reel" aria-hidden="true">${reel}</div>
-        <div class="badge">✨ ${esc(T.badge)}</div>
-        <h1>${lang === "ru" ? "Дубль" : "Dubl"}</h1>
-        <p>${esc(T.tagline)}</p>
-      </header>`;
+      <section class="panel" id="top">
+        <div class="logo">${esc(T.logo[0])}<b>${esc(T.logo[1])}</b></div>
+        <nav class="nav">
+          <button class="bell ${freeAvailable() ? "dot" : ""}" data-bell aria-label="${lang === "ru" ? "Уведомления" : "Notifications"}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
+          </button>
+          <button data-scroll="what">${esc(T.nav[0])}</button>
+          <button data-scroll="tpl">${esc(T.nav[1])}</button>
+          <button data-scroll="faq">${esc(T.nav[2])}</button>
+        </nav>
+        <div class="line">${name ? fmt(esc(T.hello), { name: `<b class="link">${esc(name)}</b>` }) : esc(T.guest)}</div>
+      </section>`;
 
     if (HAS_USER) {
-      html += `<section class="card balance"><div class="label">${esc(T.balance)}</div>`;
-      html += STAFF ? `<div class="staff">${esc(T.staff)}</div>` : `
-        <div class="chips">
-          <div class="chip"><i>🎬</i><b>${BAL.video}</b><small>${esc(T.b_video)}</small></div>
-          <div class="chip"><i>🎭</i><b>${BAL.swap}</b><small>${esc(T.b_swap)}</small></div>
-          <div class="chip"><i>🪄</i><b>${BAL.enhance}</b><small>${esc(T.b_enh)}</small></div>
-          <div class="chip"><i>🎁</i><b>${FREE_PER_DAY > 0 ? Math.max(FREE_LEFT, 0) : "—"}</b><small>${esc(T.b_free)}</small></div>
-        </div>`;
+      html += `<section class="panel"><div class="bar">${esc(T.balance)}</div>`;
+      if (STAFF) {
+        html += `<div class="line" style="color:var(--accent)">♾️ ${esc(T.staff)}</div>`;
+      } else {
+        const kv = (k, v) => `<div class="kv"><span>${label(k)}</span><b class="${v > 0 ? "on" : ""}">${v}</b></div>`;
+        html += kv(T.b_video, BAL.video) + kv(T.b_swap, BAL.swap) + kv(T.b_enh, BAL.enhance);
+        if (FREE_PER_DAY > 0) html += kv(T.b_free, Math.max(FREE_LEFT, 0));
+      }
       html += `</section>`;
     }
 
-    html += `<h2 class="sec-head">${esc(T.what)}</h2><div class="tiles">`;
-    html += tile("create", "🎬", ["#7b5cff", "#c03cff"], T.create_t, fmt(T.create_d, { vs: VS }), priceBadge("video"));
-    html += tile("swap", "🎭", ["#ff5e7e", "#ff9a3c"], T.swap_t, fmt(T.swap_d, { sw: SW }), priceBadge("swap"));
-    html += tile("enhance", "🪄", ["#17c3b2", "#2f80ed"], T.enh_t, T.enh_d, priceBadge("enhance"));
-    if (FREE_PER_DAY > 0 || STAFF) {
-      const fs = freeState();
-      html += tile("free", "🎁", ["#34c759", "#0fa36b"], T.free_t, T.free_d,
-        `<span class="price ${fs.on ? "on" : ""}">${esc(fs.text)}</span>`, fs.off ? "off" : "");
-    } else {
-      html += tile("templates-scroll", "🔥", ["#ff7a18", "#ff2b6d"], T.tpl_h.replace("🔥 ", ""), T.tpl_sub, "");
-    }
-    html += `</div>`;
-
-    html += `<h2 class="sec-head">${esc(T.tpl_h)}</h2><p class="sec-sub">${esc(T.tpl_sub)}</p><div class="grid" id="templates">`;
-    for (const t of TEMPLATES) {
-      html += `<button class="tpl press" data-tpl="${esc(t.id)}" style="background:${grad(t.id)}">
-        <span class="shine" style="animation-delay:${(Math.random() * 6).toFixed(1)}s"></span>
-        <span class="emo">${esc(t.emoji)}</span><b>${esc(t[lang][0])}</b></button>`;
-    }
-    html += `</div>`;
-
-    html += `<h2 class="sec-head">${esc(T.how_h)}</h2><section class="card steps">`;
-    T.how.forEach((s, i) => { html += `<div class="step"><span class="n">${i + 1}</span><span>${esc(s)}</span></div>`; });
+    html += `<section class="panel" id="what"><div class="bar">${esc(T.what)}</div>`;
+    html += row("create", "🎬", T.create_t, fmt(T.create_d, { vs: VS }), price("video"));
+    html += row("swap", "🎭", T.swap_t, fmt(T.swap_d, { sw: SW }), price("swap"));
+    html += row("enhance", "🪄", T.enh_t, T.enh_d, price("enhance"));
+    if (FREE_PER_DAY > 0 || STAFF) html += row("free", "🎁", T.free_t, T.free_d, freePrice(), freeAvailable() || FREE_LEFT === -2 ? "" : "off");
     html += `</section>`;
 
-    html += `<h2 class="sec-head">${esc(T.faq_h)}</h2><section class="card faq">`;
+    html += `<section class="panel" id="tpl"><div class="bar">${esc(T.tpl_h)} <small>${TEMPLATES.length}</small></div>
+      <div class="line muted">${esc(T.tpl_sub)}</div><div class="cells">`;
+    for (const t of TEMPLATES) html += `<button class="cell" data-tpl="${esc(t.id)}">${emo(t.emoji)}<span>${esc(t[lang][0])}</span></button>`;
+    html += `</div></section>`;
+
+    html += `<section class="panel"><div class="bar">${esc(T.how_h)}</div>`;
+    T.how.forEach((s, i) => { html += `<div class="step"><b>${i + 1}.</b><span>${label(s)}</span></div>`; });
+    html += `</section>`;
+
+    html += `<section class="panel" id="faq"><div class="bar">${esc(T.faq_h)}</div>`;
     for (const [qq, a] of T.faq) html += `<details><summary>${esc(qq)}</summary><p>${esc(a)}</p></details>`;
-    html += `</section><p class="foot">${esc(T.foot)}</p>`;
+    html += `</section>`;
+
+    html += `<section class="panel"><div class="line foot"><span>${esc(T.foot)} ${new Date().getFullYear()}</span>
+      <a href="https://t.me/${BOT}" data-chat>@${esc(BOT)}</a></div></section>`;
 
     document.getElementById("app").innerHTML = html;
   }
@@ -400,21 +351,19 @@
     let sub = `${PRICE.video} ⭐`;
     if (STAFF) sub = T.go_free_staff;
     else if (HAS_USER && BAL.video > 0) sub = T.go_balance;
-    let free = "";
-    if (FREE_PER_DAY > 0 && !STAFF && FREE_LEFT !== 0) {
-      free = `<button class="btn alt press" data-go="tplfree-${esc(t.id)}">${esc(FREE_LEFT > 0 ? fmt(T.free_n, { n: FREE_LEFT }) : T.free)}</button>`;
-    }
+    const free = FREE_PER_DAY > 0 && !STAFF && FREE_LEFT !== 0
+      ? `<button class="btn alt" data-go="tplfree-${esc(t.id)}">${emo("🎁")} ${esc(FREE_LEFT > 0 ? fmt(T.free_n, { n: FREE_LEFT }) : T.free)}</button>` : "";
     sheet.innerHTML = `
-      <div class="grab"></div>
-      <div class="art" style="background:${grad(t.id)}"><span class="shine"></span>${esc(t.emoji)}</div>
-      <h3 id="sheet-title">${esc(title)}</h3>
-      <p class="desc">${esc(desc)}</p>
-      <p class="meta">${esc(fmt(T.meta, { vs: VS }))}</p>
-      <button class="btn main press" data-go="tpl-${esc(t.id)}">🎬 ${esc(T.go)} <small>· ${esc(sub)}</small></button>
-      ${free}
+      <div class="bar"><span id="sheet-title">${esc(title)}</span><button class="close" data-close aria-label="✕">✕</button></div>
+      <div class="about"><span class="big">${emo(t.emoji)}</span>
+        <div><p>${esc(desc)}</p><small>${esc(fmt(T.meta, { vs: VS }))}</small></div></div>
+      <div class="actions">
+        <button class="btn main" data-go="tpl-${esc(t.id)}">${esc(T.go)} <small>· ${esc(sub)}</small></button>
+        ${free}
+      </div>
       <p class="note">${esc(T.note)}</p>`;
     layer.classList.add("open");
-    if (can("6.1")) { tg.BackButton.show(); }
+    if (can("6.1")) tg.BackButton.show();
   }
 
   function closeSheet() {
@@ -424,12 +373,18 @@
 
   // ---------- События ----------
   document.addEventListener("click", e => {
-    const el = e.target.closest("[data-go],[data-tpl]");
+    const el = e.target.closest("[data-go],[data-tpl],[data-scroll],[data-close],[data-bell],[data-chat]");
     if (!el) return;
-    if (el.dataset.tpl) { openSheet(el.dataset.tpl); return; }
+    if (el.dataset.tpl) return openSheet(el.dataset.tpl);
+    if (el.hasAttribute("data-close")) return closeSheet();
+    if (el.hasAttribute("data-bell")) { haptic("light"); return toast(freeAvailable() ? T.bell_free : T.bell_none); }
+    if (el.hasAttribute("data-chat")) {
+      if (tg && tg.initData) { e.preventDefault(); tg.close(); }  // мы и так в чате с ботом — просто закрываемся
+      return;
+    }
+    if (el.dataset.scroll) { haptic("select"); return document.getElementById(el.dataset.scroll).scrollIntoView({ behavior: "smooth", block: "start" }); }
     const action = el.dataset.go;
-    if (action === "templates-scroll") { document.getElementById("templates").scrollIntoView({ behavior: "smooth" }); return; }
-    if (action === "free" && !STAFF && FREE_LEFT === 0) { haptic("light"); alertBox(T.free_used); return; }
+    if (action === "free" && !STAFF && FREE_LEFT === 0) { haptic("light"); return alertBox(T.free_used); }
     go(action);
   });
   document.getElementById("backdrop").addEventListener("click", closeSheet);
@@ -449,9 +404,10 @@
     tg.ready();
     tg.expand();
     if (can("6.1")) {
-      try { tg.setHeaderColor("secondary_bg_color"); tg.setBackgroundColor("secondary_bg_color"); } catch (e) {}
+      try { tg.setHeaderColor("#151515"); tg.setBackgroundColor("#151515"); } catch (e) {}
       tg.BackButton.onClick(closeSheet);
     }
+    if (can("7.10")) { try { tg.setBottomBarColor("#151515"); } catch (e) {} }
   }
 })();
 </script>
