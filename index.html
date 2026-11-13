@@ -4,8 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>Дубль</title>
-<!-- Мини-приложение бота «Дубль». Шаблоны ниже вписывает tools/webapp.py из dubl_bot.py — вручную их не правьте -->
+<title>Мотор</title>
+<!-- Мини-приложение бота «Мотор». Шаблоны ниже вписывает tools/webapp.py из dubl_bot.py — вручную их не правьте.
+     Если бот передал адрес веб-API (параметр api), заказ целиком идёт здесь: фото, оплата ⭐, ход генерации, видео.
+     Без него кнопки отправляют в чат с ботом. -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   /* Своя тёмная палитра (не тема Telegram): угольный фон, плоские панели, лаймовый акцент, радужная линия */
@@ -20,6 +22,7 @@
     --muted: #8e8e8e;
     --link: #4a93d6;
     --accent: #9ac31c;
+    --danger: #ff6b6b;
     --rainbow: linear-gradient(90deg, #37b1da 0%, #cc5ac0 50%, #cce335 100%);
     --radius: 3px;
   }
@@ -30,7 +33,7 @@
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overflow-x: hidden;
   }
   button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; text-align: inherit; }
-  .topline { position: fixed; top: 0; left: 0; right: 0; height: 2px; background: var(--rainbow); z-index: 5; }
+  .topline { position: fixed; top: 0; left: 0; right: 0; height: 2px; background: var(--rainbow); z-index: 30; }
   .app { max-width: 720px; margin: 0 auto; padding: 14px 10px calc(20px + env(safe-area-inset-bottom)); }
   .emo { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-style: normal; }
 
@@ -98,7 +101,7 @@
 
   .foot { display: flex; justify-content: space-between; gap: 10px; }
 
-  /* ---------- Карточка шаблона (снизу) ---------- */
+  /* ---------- Карточка шаблона (снизу) — когда заказ идёт через чат ---------- */
   .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
   .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; max-width: 720px; margin: 0 auto;
            background: var(--panel); border: 1px solid var(--line); border-bottom: 0;
@@ -108,25 +111,74 @@
   .open .backdrop { opacity: 1; pointer-events: auto; }
   .open .sheet { transform: none; }
   .sheet .close { color: var(--muted); font-size: 16px; padding: 0 2px; }
-  .sheet .about { display: flex; gap: 12px; align-items: flex-start; padding: 12px; }
-  .sheet .big { flex: none; display: grid; place-items: center; width: 64px; height: 64px; background: var(--cell);
-                border: 1px solid var(--line); border-radius: var(--radius); font-size: 34px; }
-  .sheet .about p { margin: 0; color: var(--bright); }
-  .sheet .about small { display: block; margin-top: 6px; color: var(--muted); font-size: 11.5px; }
+  .about { display: flex; gap: 12px; align-items: flex-start; padding: 12px; }
+  .big { flex: none; display: grid; place-items: center; width: 64px; height: 64px; background: var(--cell);
+         border: 1px solid var(--line); border-radius: var(--radius); font-size: 34px; }
+  .about p { margin: 0; color: var(--bright); }
+  .about small { display: block; margin-top: 6px; color: var(--muted); font-size: 11.5px; }
   .actions { padding: 0 12px 12px; display: grid; gap: 8px; }
   .btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; padding: 0 12px;
          border-radius: var(--radius); font-weight: bold; font-size: 13px; text-align: center; border: 1px solid var(--line); }
   .btn.main { background: var(--accent); border-color: #b4dc3a; color: #121212; }
   .btn.main small { font-weight: normal; opacity: .8; }
   .btn.alt { background: var(--bar); color: var(--bright); }
+  .btn.danger { background: var(--bar); color: var(--danger); }
   .btn:active { filter: brightness(.9); }
+  .btn[disabled] { opacity: .45; pointer-events: none; }
   .note { margin: 0; padding: 0 12px 12px; color: var(--muted); font-size: 11.5px; text-align: center; }
 
-  .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 20; translate: -50% 16px;
+  /* ---------- Экран заказа: всё прямо в приложении ---------- */
+  .view { position: fixed; inset: 0; z-index: 12; background: var(--bg); overflow-y: auto; display: none;
+          padding: 2px 0 calc(140px + env(safe-area-inset-bottom)); }
+  .view.on { display: block; }
+  .vbody { max-width: 720px; margin: 0 auto; padding: 0 10px; }
+  .vhead { display: flex; align-items: center; gap: 12px; padding: 12px 2px 10px; }
+  .vhead b { color: var(--bright); font-size: 15px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vhead button { flex: none; color: var(--link); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; }
+  .seg button { padding: 9px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--cell); }
+  .seg button.on { border-color: var(--accent); }
+  .seg b { display: block; color: var(--bright); font-size: 12.5px; }
+  .seg small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+  .seg button.on b { color: var(--accent); }
+  .slots { display: flex; gap: 10px; padding: 12px; flex-wrap: wrap; }
+  .slot { position: relative; width: 104px; }
+  .slot .box { width: 104px; height: 130px; display: grid; place-items: center; background: var(--cell); border: 1px dashed #555;
+               border-radius: var(--radius); color: var(--muted); font-size: 30px; font-weight: 300; overflow: hidden; }
+  .slot .box img { width: 100%; height: 100%; object-fit: cover; }
+  .slot .del { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; border-radius: var(--radius);
+               background: rgba(0,0,0,.7); color: #fff; display: grid; place-items: center; font-size: 12px; }
+  .slot .dur { position: absolute; left: 5px; bottom: 26px; padding: 1px 5px; border-radius: 2px; background: rgba(0,0,0,.7); color: #fff; font-size: 11px; }
+  .slot small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.25; }
+  .field { padding: 12px; }
+  textarea { display: block; width: 100%; min-height: 104px; resize: vertical; background: var(--cell); color: var(--bright);
+             border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 10px; font: inherit; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  .counter { margin-top: 5px; color: var(--muted); font-size: 11px; text-align: right; }
+  .hint { padding: 0 12px 12px; color: var(--muted); font-size: 11.5px; }
+  .hint b { color: var(--bright); }
+  .chips { display: flex; gap: 6px; padding: 12px; flex-wrap: wrap; }
+  .check { display: flex; gap: 10px; align-items: flex-start; padding: 11px 12px; cursor: pointer; }
+  .check input { accent-color: var(--accent); width: 18px; height: 18px; margin: 1px 0 0; flex: none; }
+  .err { max-width: 700px; margin: 0 auto 8px; padding: 7px 10px; background: #2a1b1b; border: 1px solid #5a2c2c;
+         border-radius: var(--radius); color: var(--danger); font-size: 12px; }
+  .gobar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 13; display: none;
+           padding: 14px 10px calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 35%); }
+  .gobar.on { display: block; }
+  .gobar .btn { max-width: 700px; margin: 0 auto; min-height: 50px; font-size: 14px; }
+  .status { padding: 18px 12px 6px; text-align: center; }
+  .status b { display: block; color: var(--bright); font-size: 17px; }
+  .status span { display: block; margin-top: 4px; color: var(--muted); }
+  .progress { height: 3px; margin: 14px 12px 16px; background: var(--cell); overflow: hidden; border-radius: 2px; }
+  .progress i { display: block; height: 100%; width: 40%; background: var(--rainbow); animation: slide 1.4s ease-in-out infinite; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+  .result video, .result img { display: block; width: 100%; max-height: 68vh; background: #000; object-fit: contain; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 40; translate: -50% 16px;
            padding: 9px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); color: var(--bright);
            font-size: 12px; opacity: 0; transition: opacity .2s, translate .2s; pointer-events: none; max-width: calc(100% - 32px); }
   .toast.show { opacity: 1; translate: -50% 0; }
-  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
@@ -136,6 +188,9 @@
   <div class="backdrop" id="backdrop"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"></div>
 </div>
+<section class="view" id="view" aria-live="polite"></section>
+<div class="gobar" id="gobar"></div>
+<input type="file" id="pick" hidden>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -150,7 +205,6 @@
       logo: ["дубль", "видео"],
       nav: ["Главная", "Шаблоны", "Вопросы"],
       hello: "Вы вошли как {name}.", guest: "Вы не вошли.",
-      intro: "Оживлю фото, вставлю ваше лицо в видео и улучшу старые снимки.",
       balance: "Баланс",
       b_video: "🎬 Видео", b_swap: "🎭 Замены лица", b_enh: "🪄 Улучшения фото", b_free: "🎁 Бесплатно сегодня",
       staff: "Для вас всё бесплатно и без лимитов.",
@@ -173,6 +227,9 @@
       how: ["Выберите шаблон или функцию — прямо здесь, в приложении.",
             "Подтвердите и оплатите звёздами ⭐ прямо в чате.",
             "Пришлите фото — через пару минут придёт результат."],
+      how_live: ["Выберите шаблон или функцию.",
+                 "Загрузите фото и оплатите звёздами ⭐ — прямо здесь, в приложении.",
+                 "Через пару минут видео появится здесь и придёт в чат с ботом."],
       faq_h: "Вопросы",
       faq: [
         ["Сколько ждать?", "Видео — 1–4 минуты, замена лица — 1–5 минут, улучшение фото — до минуты. Когда заказов много, бот покажет место в очереди."],
@@ -182,17 +239,47 @@
         ["Можно со знаменитостью?", "Нет: бот не делает видео с конкретными людьми по имени. Человек в ролике берётся только с фото — и только с его согласия."],
         ["Как оплатить?", "Звёздами Telegram ⭐ прямо в чате: бот пришлёт счёт после подтверждения."],
       ],
+      faq_pay_live: "Звёздами Telegram ⭐ прямо в приложении: после нажатия «Сгенерировать» откроется окно оплаты.",
       bell_free: "🎁 Сегодня доступно бесплатное видео",
       bell_none: "Новых уведомлений нет",
       free_used: "Бесплатное видео на сегодня уже использовано — приходите завтра!",
       going: "Открываю чат с ботом…",
-      foot: "Дубль",
+      foot: "Мотор",
+      // --- заказ в приложении ---
+      back: "‹ Назад",
+      q_full: "Полное качество", q_free: "🎁 Бесплатно", q_free_d: "облегчённое, ~4 сек",
+      prompt_h: "Описание", prompt_ph: "Что происходит в ролике: действие, место, стиль. Например: «я танцую на крыше в Токио ночью, неоновые огни»",
+      no_names: "<b>Людей по имени бот не рисует</b> — знаменитостей, блогеров, знакомых. Человек в ролике берётся только с фото.",
+      photos_h: "Фото", clip_h: "Отрывок видео",
+      s_you: "Ваше фото", s_second: "Фото второго человека", s_second_opt: "Второй человек — если в ролике двое",
+      s_face: "Фото с лицом", s_clip: "Отрывок до {sw} сек", s_enh: "Фото для улучшения",
+      photo_tip: "Чёткое фото, лицо хорошо видно.", swap_tip: "Лучше всего — один человек в кадре, лицо хорошо видно.",
+      enh_tip: "Увеличу до 4 раз, добавлю чёткости и восстановлю лица. Результат — файлом, без сжатия.",
+      aspect_h: "Формат кадра",
+      consent_video: "Подтверждаю: на фото я или человек, который разрешил использовать своё фото.",
+      consent_swap: "Подтверждаю: на фото я или человек, разрешивший использовать лицо; в отрывке нет откровенных сцен; не выдам ролик за настоящую съёмку.",
+      generate: "Сгенерировать", c_free: "бесплатно", c_balance: "спишется 1 с баланса",
+      uploading: "Загрузка… {p}%", sending: "Отправляю…",
+      st_payment: "Ожидаем оплату", st_payment_d: "Оплатите звёздами — и генерация начнётся сама.",
+      st_queued: "В очереди: {n}-й", st_queued_d: "Сейчас много заказов — начну, как только освободится место.",
+      st_running: "Генерирую…", st_running_d: "Обычно это занимает {t}.", t_video: "1–4 минуты", t_swap: "1–5 минут", t_enh: "до минуты",
+      st_done: "Готово!", st_done_d: "Копия уже в чате с ботом.",
+      st_failed: "Не получилось", st_cancelled: "Отменено", st_cancelled_d: "Попытка вернулась на баланс.",
+      pay: "Оплатить {p} ⭐", cancel_order: "Отменить заказ", cancel_gen: "Отменить генерацию",
+      download: "⬇ Скачать", again: "Сделать ещё", to_home: "На главную", retry: "Попробовать ещё раз",
+      close_ok: "Можно закрыть приложение — готовое видео придёт в чат с ботом.",
+      your_order: "Ваш заказ", open: "Открыть",
+      paid: "Оплата прошла — запускаю генерацию", pay_failed: "Оплата не прошла. Попробуйте ещё раз.",
+      net_err: "Нет связи с ботом. Проверьте интернет и попробуйте ещё раз.",
+      too_big: "Файл слишком большой: фото — до 10 МБ, видео — до 20 МБ.",
+      clip_long: "Отрывок длиннее {sw} секунд — обрежьте его и выберите снова.",
+      clip_bad: "Не получилось открыть это видео. Выберите обычный ролик MP4 или MOV.",
+      not_photo: "Это не фото — выберите картинку.",
     },
     en: {
       logo: ["dubl", "video"],
       nav: ["Home", "Templates", "Questions"],
       hello: "You are logged in as {name}.", guest: "You are not logged in.",
-      intro: "I bring photos to life, put your face into videos and enhance old pictures.",
       balance: "Balance",
       b_video: "🎬 Videos", b_swap: "🎭 Face swaps", b_enh: "🪄 Photo enhancements", b_free: "🎁 Free today",
       staff: "Everything is free and unlimited for you.",
@@ -215,6 +302,9 @@
       how: ["Pick a template or a feature — right here in the app.",
             "Confirm and pay with Telegram Stars ⭐ right in the chat.",
             "Send a photo — get the result in a couple of minutes."],
+      how_live: ["Pick a template or a feature.",
+                 "Upload a photo and pay with Telegram Stars ⭐ — right here in the app.",
+                 "In a couple of minutes the video appears here and in the chat with the bot."],
       faq_h: "Questions",
       faq: [
         ["How long does it take?", "Video — 1–4 minutes, face swap — 1–5 minutes, photo enhancement — up to a minute. When it's busy, the bot shows your place in the queue."],
@@ -224,48 +314,93 @@
         ["Can I make a video with a celebrity?", "No: the bot doesn't make videos of specific people by name. The person in the video comes only from a photo — and only with their consent."],
         ["How do I pay?", "With Telegram Stars ⭐ right in the chat: the bot sends an invoice after you confirm."],
       ],
+      faq_pay_live: "With Telegram Stars ⭐ right in the app: after you tap “Generate”, the payment window opens.",
       bell_free: "🎁 A free video is available today",
       bell_none: "No new notifications",
       free_used: "You've already used today's free video — come back tomorrow!",
       going: "Opening the chat with the bot…",
-      foot: "Dubl",
+      foot: "Motor",
+      back: "‹ Back",
+      q_full: "Full quality", q_free: "🎁 Free", q_free_d: "lighter, ~4 sec",
+      prompt_h: "Description", prompt_ph: "What happens in the video: action, place, style. E.g. “me dancing on a Tokyo rooftop at night, neon lights”",
+      no_names: "<b>The bot doesn't draw people by name</b> — celebrities, bloggers, acquaintances. The person in the video comes only from a photo.",
+      photos_h: "Photos", clip_h: "Video clip",
+      s_you: "Your photo", s_second: "Second person's photo", s_second_opt: "Second person — if there are two",
+      s_face: "Photo with the face", s_clip: "Clip up to {sw} sec", s_enh: "Photo to enhance",
+      photo_tip: "A sharp photo with a clearly visible face.", swap_tip: "Works best with one person in the frame and a clearly visible face.",
+      enh_tip: "Up to 4× upscale, sharper details and restored faces. The result comes as a file, uncompressed.",
+      aspect_h: "Frame format",
+      consent_video: "I confirm: the photo shows me, or a person who allowed me to use their photo.",
+      consent_swap: "I confirm: the photo shows me or a person who allowed using their face; the clip has no explicit scenes; I won't pass the result off as real footage.",
+      generate: "Generate", c_free: "free", c_balance: "uses 1 from balance",
+      uploading: "Uploading… {p}%", sending: "Sending…",
+      st_payment: "Waiting for payment", st_payment_d: "Pay with Stars — the generation starts by itself.",
+      st_queued: "In queue: #{n}", st_queued_d: "Lots of orders right now — I'll start as soon as a slot frees up.",
+      st_running: "Generating…", st_running_d: "It usually takes {t}.", t_video: "1–4 minutes", t_swap: "1–5 minutes", t_enh: "up to a minute",
+      st_done: "Done!", st_done_d: "A copy is already in the chat with the bot.",
+      st_failed: "It didn't work", st_cancelled: "Cancelled", st_cancelled_d: "Your attempt went back to your balance.",
+      pay: "Pay {p} ⭐", cancel_order: "Cancel order", cancel_gen: "Cancel generation",
+      download: "⬇ Download", again: "Make another", to_home: "Home", retry: "Try again",
+      close_ok: "You can close the app — the video will come to the chat with the bot.",
+      your_order: "Your order", open: "Open",
+      paid: "Payment received — starting the generation", pay_failed: "The payment didn't go through. Please try again.",
+      net_err: "Can't reach the bot. Check your connection and try again.",
+      too_big: "The file is too large: photos up to 10 MB, videos up to 20 MB.",
+      clip_long: "The clip is longer than {sw} seconds — trim it and pick it again.",
+      clip_bad: "Couldn't open this video. Pick a regular MP4 or MOV clip.",
+      not_photo: "That's not a photo — pick an image.",
     },
   };
 
-  // ---------- Данные от бота (в адресе кнопки) ----------
+  // ---------- Данные от бота: в адресе кнопки, а при включённом веб-API — свежие из /api/me ----------
   const tg = window.Telegram && window.Telegram.WebApp;
   const user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
   const q = new URLSearchParams(location.search);
   const int = (k, d) => { const v = parseInt(q.get(k), 10); return Number.isFinite(v) ? v : d; };
   const tgLang = ((user && user.language_code) || navigator.language || "ru").toLowerCase();
-  const lang = I18N[q.get("l")] ? q.get("l") : (/^(ru|uk|be|kk)/.test(tgLang) ? "ru" : "en");
-  const T = I18N[lang];
-  const BOT = /^[A-Za-z0-9_]{5,32}$/.test(q.get("b") || "") ? q.get("b") : "dublll_video_bot";
-  const PRICE = { video: int("pv", 99), swap: int("ps", 49), enhance: int("pe", 15) };
-  const VS = int("vs", 5), SW = int("sw", 10), FREE_PER_DAY = int("fd", 1);
-  const HAS_USER = q.has("v");                    // из меню бота — с балансом; из кнопки «Приложение» у поля ввода — без
-  const BAL = { video: int("v", 0), swap: int("s", 0), enhance: int("e", 0) };
-  const FREE_LEFT = int("f", -2);                  // -1 — админ (всё бесплатно), -2 — неизвестно
-  const STAFF = FREE_LEFT === -1;
+  let lang = I18N[q.get("l")] ? q.get("l") : (/^(ru|uk|be|kk)/.test(tgLang) ? "ru" : "en");
+  let T = I18N[lang];
+  const BOT = /^[A-Za-z0-9_]{5,32}$/.test(q.get("b") || "") ? q.get("b") : "motor_klip_bot";
+  let PRICE = { video: int("pv", 99), swap: int("ps", 49), enhance: int("pe", 15) };
+  let VS = int("vs", 5), SW = int("sw", 10), FREE_PER_DAY = int("fd", 1);
+  let HAS_USER = q.has("v");                    // из меню бота — с балансом; из кнопки «Приложение» у поля ввода — без
+  let BAL = { video: int("v", 0), swap: int("s", 0), enhance: int("e", 0) };
+  let FREE_LEFT = int("f", -2);                  // -1 — админ (всё бесплатно), -2 — неизвестно
+  let STAFF = FREE_LEFT === -1;
+  // Адрес веб-API бота: только https (или этот же компьютер — для проверки)
+  const API = (() => {
+    const a = (q.get("api") || "").replace(/\/+$/, "");
+    return /^https:\/\/[^\s/?#]+$|^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(a) ? a : "";
+  })();
+  let LIVE = false;                              // API ответил — заказ целиком идёт в приложении
+  let recent = null;                             // последний заказ (для панели «Ваш заказ»)
   document.documentElement.lang = lang;
 
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => (k in o ? o[k] : ""));
   const can = v => tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v);
-  const haptic = kind => { try { if (can("6.1")) kind === "select" ? tg.HapticFeedback.selectionChanged() : tg.HapticFeedback.impactOccurred(kind); } catch (e) {} };
+  const haptic = kind => {
+    try {
+      if (!can("6.1")) return;
+      if (kind === "select") tg.HapticFeedback.selectionChanged();
+      else if (kind === "success" || kind === "error") tg.HapticFeedback.notificationOccurred(kind);
+      else tg.HapticFeedback.impactOccurred(kind);
+    } catch (e) {}
+  };
   // Эмодзи отдельно: у части систем без цветного шрифта они рисуются контуром
   const emo = (e, cls = "") => `<i class="emo ${cls}">${esc(e)}</i>`;
   const label = s => { const [first, ...rest] = s.split(" "); return /\p{L}/u.test(first) ? esc(s) : emo(first) + " " + esc(rest.join(" ")); };
+  const $ = id => document.getElementById(id);
 
   let toastTimer;
   function toast(text) {
-    const el = document.getElementById("toast");
+    const el = $("toast");
     el.textContent = text; el.classList.add("show");
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
   }
   const alertBox = text => (can("6.2") ? tg.showAlert(text) : toast(text));
 
-  // Кнопка приложения → команда /start <действие> в чате с ботом → бот запускает тот же сценарий, что и его кнопки
+  // Без веб-API: кнопка → команда /start <действие> в чате с ботом → бот запускает тот же сценарий, что и его кнопки
   let leaving = false;
   function go(action) {
     if (leaving || !/^[A-Za-z0-9_-]{1,64}$/.test(action)) return;
@@ -281,7 +416,7 @@
     }
   }
 
-  // ---------- Отрисовка ----------
+  // ---------- Главная ----------
   const freeAvailable = () => STAFF || (FREE_PER_DAY > 0 && FREE_LEFT !== 0);
 
   function price(kind) {
@@ -300,7 +435,7 @@
   // Разделы шаблонов: «топ» и «вдвоём» собираются по значкам, остальные — по полю cat
   const FILTERS = ["all", "hot", "dance", "duo", "fx", "scene"];
   let filter = "all";
-  const isDuo = t => t.people === 2;
+  const isDuo = t => !!t && t.people === 2;
   const matches = (t, f) => f === "all" || (f === "hot" ? t.tag === "hot" : f === "duo" ? isDuo(t) : t.cat === f);
 
   function cellsHtml() {
@@ -319,12 +454,17 @@
     filter = f;
     haptic("select");
     document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.filter === f));
-    document.getElementById("cells").innerHTML = cellsHtml();
+    $("cells").innerHTML = cellsHtml();
   }
 
   const row = (action, icon, title, desc, right, cls = "") =>
     `<button class="row ${cls}" data-go="${action}"><span class="ri">${emo(icon)}</span>
       <span class="rt"><span class="t">${esc(title)}</span><small>${esc(desc)}</small></span>${right}</button>`;
+
+  const STATUS_TEXT = o => ({
+    payment: T.st_payment, queued: fmt(T.st_queued, { n: o.queue || 1 }), running: T.st_running,
+    done: T.st_done, failed: T.st_failed, cancelled: T.st_cancelled,
+  }[o.status] || o.status);
 
   function render() {
     const name = user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : "";
@@ -341,6 +481,12 @@
         </nav>
         <div class="line">${name ? fmt(esc(T.hello), { name: `<b class="link">${esc(name)}</b>` }) : esc(T.guest)}</div>
       </section>`;
+
+    if (LIVE && recent) {  // незаконченный или свежий заказ — чтобы, открыв приложение снова, увидеть ход или видео
+      html += `<section class="panel"><div class="bar">${esc(T.your_order)}</div>
+        <button class="row" data-order><span class="rt"><span class="t">${esc(recent.title)}</span>
+        <small>${esc(STATUS_TEXT(recent))}</small></span><span class="rp on">${esc(T.open)} ›</span></button></section>`;
+    }
 
     if (HAS_USER) {
       html += `<section class="panel"><div class="bar">${esc(T.balance)}</div>`;
@@ -371,22 +517,25 @@
     html += `</section>`;
 
     html += `<section class="panel"><div class="bar">${esc(T.how_h)}</div>`;
-    T.how.forEach((s, i) => { html += `<div class="step"><b>${i + 1}.</b><span>${label(s)}</span></div>`; });
+    (LIVE ? T.how_live : T.how).forEach((s, i) => { html += `<div class="step"><b>${i + 1}.</b><span>${label(s)}</span></div>`; });
     html += `</section>`;
 
     html += `<section class="panel" id="faq"><div class="bar">${esc(T.faq_h)}</div>`;
-    for (const [qq, a] of T.faq) html += `<details><summary>${esc(qq)}</summary><p>${esc(a)}</p></details>`;
+    T.faq.forEach(([qq, a], i) => {
+      const answer = LIVE && i === T.faq.length - 1 ? T.faq_pay_live : a;
+      html += `<details><summary>${esc(qq)}</summary><p>${esc(answer)}</p></details>`;
+    });
     html += `</section>`;
 
     html += `<section class="panel"><div class="line foot"><span>${esc(T.foot)} ${new Date().getFullYear()}</span>
       <a href="https://t.me/${BOT}" data-chat>@${esc(BOT)}</a></div></section>`;
 
-    document.getElementById("app").innerHTML = html;
+    $("app").innerHTML = html;
   }
 
-  // ---------- Карточка шаблона ----------
-  const layer = document.getElementById("layer");
-  const sheet = document.getElementById("sheet");
+  // ---------- Карточка шаблона (без веб-API: дальше — в чате) ----------
+  const layer = $("layer");
+  const sheet = $("sheet");
 
   function openSheet(id) {
     const t = TEMPLATES.find(x => x.id === id);
@@ -410,19 +559,414 @@
       </div>
       <p class="note">${esc(T.note)}</p>`;
     layer.classList.add("open");
-    if (can("6.1")) tg.BackButton.show();
+    syncBack();
   }
 
   function closeSheet() {
     layer.classList.remove("open");
-    if (can("6.1")) tg.BackButton.hide();
+    syncBack();
+  }
+
+  // ---------- Веб-API бота ----------
+  async function api(path, method = "GET") {
+    let r;
+    try {
+      r = await fetch(API + path, { method, headers: { "X-Init-Data": tg.initData } });
+    } catch (e) {
+      throw new Error(T.net_err);
+    }
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || T.net_err);
+    return data;
+  }
+
+  function upload(fd, onProgress) {  // XMLHttpRequest — ради процента загрузки
+    return new Promise((resolve, reject) => {
+      const x = new XMLHttpRequest();
+      x.open("POST", API + "/api/orders");
+      x.setRequestHeader("X-Init-Data", tg.initData);
+      x.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100)); };
+      x.onload = () => {
+        let data = {};
+        try { data = JSON.parse(x.responseText); } catch (e) {}
+        x.status >= 200 && x.status < 300 ? resolve(data) : reject(new Error(data.error || T.net_err));
+      };
+      x.onerror = () => reject(new Error(T.net_err));
+      x.send(fd);
+    });
+  }
+
+  function applyMe(me) {
+    LIVE = HAS_USER = true;
+    STAFF = me.staff; BAL = me.balance; FREE_LEFT = me.free_left; FREE_PER_DAY = me.free_per_day;
+    PRICE = me.prices; VS = me.video_seconds; SW = me.swap_seconds; recent = me.recent;
+    if (!q.get("l") && I18N[me.lang]) { lang = me.lang; T = I18N[lang]; document.documentElement.lang = lang; }
+  }
+
+  async function refreshMe() {
+    try { applyMe(await api("/api/me")); render(); } catch (e) {}
+  }
+
+  // ---------- Экран заказа ----------
+  const view = $("view"), gobar = $("gobar"), pick = $("pick");
+  let form = null;        // что заказываем: {kind, tpl, free, photos[], clip, prompt, aspect, consent}
+  let order = null;       // текущий заказ с сервера
+  let busy = false;       // идёт загрузка
+  let errorText = "";
+  let pollTimer = null, tickTimer = null, runningSince = 0;
+  let pickSlot = null;
+
+  const creditOf = f => (f.kind === "swap" ? "swap" : f.kind === "enhance" ? "enhance" : "video");
+  const freeAllowed = f => f.kind === "video" && !isDuo(f.tpl) && FREE_PER_DAY > 0 && !STAFF && FREE_LEFT !== 0;
+  const slotCount = f => (f.kind !== "video" ? 1 : f.tpl ? (isDuo(f.tpl) ? 2 : 1) : (f.free ? 1 : 2));
+  const needPhotos = f => (f.kind === "video" && isDuo(f.tpl) ? 2 : 1);
+  const showAspect = f => f.kind === "video" && !f.free && (isDuo(f.tpl) || (!f.tpl && f.photos.filter(Boolean).length > 1));
+
+  function openCreate(opts) {
+    haptic("select");
+    form = { kind: "video", tpl: null, free: false, photos: [], clip: null, prompt: "", aspect: "9:16", consent: false, ...opts };
+    if (form.free && !freeAllowed(form)) form.free = false;
+    order = null; errorText = "";
+    stopPolling();
+    view.classList.add("on");
+    renderCreate();
+    view.scrollTop = 0;
+    syncBack();
+  }
+
+  function closeView() {
+    if (busy) return;
+    stopPolling();
+    view.classList.remove("on");
+    gobar.classList.remove("on");
+    form = null;
+    syncBack();
+    render();
+  }
+
+  function slotHtml(i, title) {
+    const p = form.photos[i];
+    return `<div class="slot"><button class="box" data-pick="${i}" aria-label="${esc(title)}">${p ? `<img src="${p.url}" alt="">` : "+"}</button>
+      ${p ? `<button class="del" data-del="${i}" aria-label="✕">✕</button>` : ""}<small>${esc(title)}</small></div>`;
+  }
+
+  function renderCreate() {
+    const f = form, t = f.tpl;
+    const title = t ? t[lang][0] : { video: T.create_t, swap: T.swap_t, enhance: T.enh_t }[f.kind];
+    const icon = t ? t.emoji : { video: "🎬", swap: "🎭", enhance: "🪄" }[f.kind];
+    const desc = t ? t[lang][1] : { video: fmt(T.create_d, { vs: VS }), swap: fmt(T.swap_d, { sw: SW }), enhance: T.enh_tip }[f.kind];
+    let html = `<div class="vbody"><div class="vhead"><button data-act="back">${esc(T.back)}</button><b>${esc(title)}</b></div>
+      <section class="panel"><div class="about"><span class="big">${emo(icon)}</span><div><p>${esc(desc)}</p>
+      ${f.kind === "video" ? `<small>${esc(fmt(T.meta, { vs: VS }))}</small>` : ""}</div></div></section>`;
+
+    if (freeAllowed(f) || f.free) {
+      const credit = BAL.video > 0 ? fmt(T.on_balance, { n: BAL.video }) : `${PRICE.video} ⭐`;
+      const left = FREE_LEFT > 0 ? fmt(T.left, { n: FREE_LEFT }) : T.q_free_d;
+      html += `<section class="panel"><div class="seg">
+        <button class="${f.free ? "" : "on"}" data-act="full"><b>${esc(T.q_full)}</b><small>${esc(credit)}</small></button>
+        <button class="${f.free ? "on" : ""}" data-act="free"><b>${label(T.q_free)}</b><small>${esc(T.q_free_d)} · ${esc(left)}</small></button>
+      </div></section>`;
+    }
+
+    if (f.kind === "video" && !t) {
+      html += `<section class="panel"><div class="bar">${esc(T.prompt_h)}</div><div class="field">
+        <textarea id="prompt" maxlength="500" placeholder="${esc(T.prompt_ph)}">${esc(f.prompt)}</textarea>
+        <div class="counter" id="counter">${f.prompt.length}/500</div></div><div class="hint">❗️ ${T.no_names}</div></section>`;
+    }
+
+    // Фото: подписи слотов зависят от того, что заказываем
+    let titles;
+    if (f.kind === "enhance") titles = [T.s_enh];
+    else if (f.kind === "swap") titles = [T.s_face];
+    else if (t && isDuo(t)) titles = [T.s_you, T.s_second];
+    else if (t && t.photo) titles = [(t.photo[lang] || t.photo.ru).replace(/^./, c => c.toUpperCase())];
+    else if (t || f.free) titles = [T.s_you];
+    else titles = [T.s_you, T.s_second_opt];
+    html += `<section class="panel"><div class="bar">${esc(T.photos_h)}</div><div class="slots">`;
+    for (let i = 0; i < slotCount(f); i++) html += slotHtml(i, titles[i] || titles[0]);
+    html += `</div><div class="hint">${esc(f.kind === "enhance" ? T.enh_tip : f.kind === "swap" ? T.swap_tip : T.photo_tip)}</div></section>`;
+
+    if (f.kind === "swap") {
+      const c = f.clip;
+      html += `<section class="panel"><div class="bar">${esc(T.clip_h)}</div><div class="slots"><div class="slot">
+        <button class="box" data-pick="clip">${c ? `<img src="${c.thumbUrl}" alt="">` : "+"}</button>
+        ${c ? `<span class="dur">${c.duration.toFixed(1)} s</span><button class="del" data-del="clip" aria-label="✕">✕</button>` : ""}
+        <small>${esc(fmt(T.s_clip, { sw: SW }))}</small></div></div></section>`;
+    }
+
+    if (showAspect(f)) {
+      html += `<section class="panel"><div class="bar">${esc(T.aspect_h)}</div><div class="chips">` +
+        ["9:16", "1:1", "16:9"].map(a => `<button class="tab ${f.aspect === a ? "on" : ""}" data-aspect="${a}">${a}</button>`).join("") +
+        `</div></section>`;
+    }
+
+    if (f.kind !== "enhance") {
+      html += `<section class="panel"><label class="check"><input type="checkbox" id="consent" ${f.consent ? "checked" : ""}>
+        <span>${esc(f.kind === "swap" ? T.consent_swap : T.consent_video)}</span></label></section>`;
+    }
+    view.innerHTML = html + "</div>";
+    renderGo();
+  }
+
+  function ready(f) {
+    if (f.photos.filter(Boolean).length < needPhotos(f) || !f.photos[0]) return false;
+    if (f.kind === "video" && !f.tpl && !f.prompt.trim()) return false;
+    if (f.kind === "swap" && !f.clip) return false;
+    return f.kind === "enhance" || f.consent;
+  }
+
+  function costText(f) {
+    if (f.free) return T.c_free;
+    if (STAFF) return T.for_you;
+    return BAL[creditOf(f)] > 0 ? T.c_balance : `${PRICE[creditOf(f)]} ⭐`;
+  }
+
+  function renderGo(progress) {
+    if (!form || order) return;
+    const text = busy ? (progress == null ? T.sending : fmt(T.uploading, { p: progress })) : `✨ ${T.generate} · ${costText(form)}`;
+    // Ошибка — прямо над кнопкой: так её видно, где бы ни был прокручен экран
+    gobar.innerHTML = (errorText && !busy ? `<div class="err" role="alert">${esc(errorText)}</div>` : "") +
+      `<button class="btn main" data-act="submit" ${!busy && ready(form) ? "" : "disabled"}>${label(text)}</button>`;
+    gobar.classList.add("on");
+  }
+
+  // Фото уменьшаем в телефоне до 2048 пикселей: загрузка быстрее, качество для видео то же
+  function shrink(file, max) {
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        if (k === 1 && file.type === "image/jpeg") { URL.revokeObjectURL(url); return resolve(file); }
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(b => { URL.revokeObjectURL(url); resolve(b && b.size ? b : file); }, "image/jpeg", 0.92);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+
+  // Отрывок для замены лица: длина и кадр для проверки содержимого (её делает бот до списания)
+  function readClip(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement("video");
+      const fail = () => { URL.revokeObjectURL(url); reject(new Error(T.clip_bad)); };
+      v.muted = true; v.playsInline = true; v.preload = "auto";
+      v.onerror = fail;
+      v.onloadedmetadata = () => { v.currentTime = Math.min(1, (v.duration || 0) / 2); };
+      v.onseeked = () => {
+        try {
+          const k = Math.min(1, 512 / Math.max(v.videoWidth, v.videoHeight));
+          const c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(v.videoWidth * k)); c.height = Math.max(1, Math.round(v.videoHeight * k));
+          c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+          c.toBlob(b => {
+            URL.revokeObjectURL(url);
+            b ? resolve({ duration: v.duration, thumb: b, thumbUrl: URL.createObjectURL(b) }) : reject(new Error(T.clip_bad));
+          }, "image/jpeg", 0.85);
+        } catch (e) { fail(); }
+      };
+      setTimeout(fail, 20000);
+      v.src = url;
+    });
+  }
+
+  async function onPicked(file) {
+    if (!file || !form) return;
+    errorText = "";
+    try {
+      if (pickSlot === "clip") {
+        if (file.size > 20 * 1024 * 1024) throw new Error(T.too_big);
+        const info = await readClip(file);
+        if (info.duration > SW + 0.5) throw new Error(fmt(T.clip_long, { sw: SW }));
+        form.clip = { file, ...info };
+      } else {
+        // Для улучшения качества фото не уменьшаем (только если больше 10 МБ)
+        const keep = form.kind === "enhance" && file.size <= 10 * 1024 * 1024 && /^image\/(jpeg|png|webp)$/.test(file.type);
+        const blob = keep ? file : await shrink(file, form.kind === "enhance" ? 4096 : 2048);
+        if (!blob) throw new Error(T.not_photo);
+        if (blob.size > 10 * 1024 * 1024) throw new Error(T.too_big);
+        form.photos[pickSlot] = { blob, url: URL.createObjectURL(blob) };
+      }
+      haptic("light");
+    } catch (e) {
+      errorText = e.message;
+      haptic("error");
+    }
+    renderCreate();
+  }
+
+  async function submit() {
+    if (busy || !form || !ready(form)) return;
+    const f = form;
+    const fd = new FormData();
+    fd.append("kind", f.free ? "free" : f.kind);
+    if (f.tpl) fd.append("template", f.tpl.id);
+    if (f.kind === "video" && !f.tpl) fd.append("prompt", f.prompt.trim());
+    if (f.consent) fd.append("consent", "1");
+    if (showAspect(f)) fd.append("aspect", f.aspect);
+    f.photos.filter(Boolean).slice(0, slotCount(f)).forEach((p, i) => fd.append("photo", p.blob, `photo${i}.jpg`));
+    if (f.kind === "swap" && f.clip) {
+      fd.append("clip", f.clip.file, f.clip.file.name || "clip.mp4");
+      fd.append("thumb", f.clip.thumb, "thumb.jpg");
+    }
+    busy = true; errorText = "";
+    renderGo();
+    haptic("medium");
+    try {
+      const o = await upload(fd, p => renderGo(p < 100 ? p : null));
+      busy = false;
+      setOrder(o);
+      if (o.status === "payment") pay();
+    } catch (e) {
+      busy = false;
+      errorText = e.message;
+      haptic("error");
+      if (form) renderCreate();
+    }
+  }
+
+  function pay() {
+    if (!order || !order.invoice) return;
+    if (!can("6.1")) { toast(T.pay_failed); return; }
+    tg.openInvoice(order.invoice, status => {
+      if (status === "paid") { toast(T.paid); haptic("success"); setTimeout(poll, 1200); }
+      else if (status === "failed") { toast(T.pay_failed); haptic("error"); }
+    });
+  }
+
+  // ---------- Ход заказа и готовое видео ----------
+  function stopPolling() {
+    clearTimeout(pollTimer); clearInterval(tickTimer);
+    pollTimer = tickTimer = null;
+  }
+
+  async function poll() {
+    if (!order) return;
+    try { setOrder(await api(`/api/orders/${order.id}`)); }
+    catch (e) { clearTimeout(pollTimer); pollTimer = setTimeout(poll, 4000); }  // связь пропала — пробуем ещё
+  }
+
+  function setOrder(o) {
+    const before = order && order.id === o.id ? order.status : null;
+    order = o; recent = o;
+    if (!view.classList.contains("on")) { view.classList.add("on"); syncBack(); }
+    renderOrder();
+    clearTimeout(pollTimer);
+    if (["payment", "queued", "running"].includes(o.status)) {
+      pollTimer = setTimeout(poll, o.status === "payment" ? 3000 : 2500);
+    } else if (before && before !== o.status) {
+      haptic(o.status === "done" ? "success" : "error");
+      refreshMe();
+    }
+  }
+
+  const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+  function renderOrder() {
+    const o = order;
+    const wait = { video: T.t_video, swap: T.t_swap, enhance: T.t_enh }[o.credit] || T.t_video;
+    let body = "", buttons = "";
+    if (o.status === "payment") {
+      body = `<div class="status"><b>${esc(T.st_payment)}</b><span>${esc(T.st_payment_d)}</span></div>`;
+      buttons = `<button class="btn main" data-act="pay">${label(fmt(T.pay, { p: PRICE[o.credit] }))}</button>
+                 <button class="btn danger" data-act="cancel">${esc(T.cancel_order)}</button>`;
+    } else if (o.status === "queued" || o.status === "running") {
+      const queued = o.status === "queued";
+      runningSince = Date.now() - (o.elapsed || 0) * 1000;
+      body = `<div class="status"><b>${esc(STATUS_TEXT(o))}${queued ? "" : ` <span id="elapsed" style="display:inline;color:var(--accent)">${mmss(o.elapsed || 0)}</span>`}</b>
+              <span>${esc(queued ? T.st_queued_d : fmt(T.st_running_d, { t: wait }))}</span></div><div class="progress"><i></i></div>
+              <p class="note">${esc(T.close_ok)}</p>`;
+      buttons = `<button class="btn danger" data-act="cancel">${esc(T.cancel_gen)}</button>`;
+    } else if (o.status === "done") {
+      const src = API + o.result;
+      body = `<div class="result">${o.result_type === "photo" ? `<img src="${esc(src)}" alt="">`
+        : `<video src="${esc(src)}" controls autoplay loop muted playsinline></video>`}</div>
+        <div class="status"><b>${esc(T.st_done)}</b><span>${esc(T.st_done_d)}</span></div>`;
+      buttons = `<button class="btn main" data-act="download">${esc(T.download)}</button>
+                 <button class="btn alt" data-act="again">${esc(T.again)}</button>
+                 <button class="btn alt" data-act="back">${esc(T.to_home)}</button>`;
+    } else {
+      const failed = o.status === "failed";
+      body = `<div class="status"><b>${esc(failed ? T.st_failed : T.st_cancelled)}</b><span>${esc(failed ? o.error : T.st_cancelled_d)}</span></div>`;
+      buttons = `<button class="btn main" data-act="again">${esc(T.retry)}</button>
+                 <button class="btn alt" data-act="back">${esc(T.to_home)}</button>`;
+    }
+    view.innerHTML = `<div class="vbody"><div class="vhead"><button data-act="back">${esc(T.back)}</button><b>${esc(o.title)}</b></div>
+      <section class="panel">${body}<div class="actions">${buttons}</div></section></div>`;
+    gobar.classList.remove("on");
+    clearInterval(tickTimer);
+    if (o.status === "running") {
+      tickTimer = setInterval(() => { const el = $("elapsed"); if (el) el.textContent = mmss((Date.now() - runningSince) / 1000); }, 1000);
+    }
+  }
+
+  async function cancelOrder() {
+    try { setOrder(await api(`/api/orders/${order.id}/cancel`, "POST")); }
+    catch (e) { toast(e.message); }
+  }
+
+  function download() {
+    const url = API + order.result;
+    const name = order.result_type === "photo" ? "dubl_hd.jpg" : "dubl.mp4";
+    if (can("8.0") && /^https:/.test(url)) {
+      try { tg.downloadFile({ url, file_name: name }); return; } catch (e) {}
+    }
+    if (tg && tg.initData && /^https:/.test(url)) tg.openLink(url);
+    else window.open(url, "_blank");
+  }
+
+  function again() {
+    const o = order;
+    const t = form && form.tpl;
+    const kind = form ? form.kind : (o.credit === "video" ? "video" : o.credit);
+    openCreate({ kind, tpl: t || null, free: form ? form.free : o.free });
+  }
+
+  // ---------- Кнопка «Назад» Telegram ----------
+  function syncBack() {
+    if (!can("6.1")) return;
+    view.classList.contains("on") || layer.classList.contains("open") ? tg.BackButton.show() : tg.BackButton.hide();
+  }
+  function onBack() {
+    if (view.classList.contains("on")) closeView(); else closeSheet();
   }
 
   // ---------- События ----------
   document.addEventListener("click", e => {
-    const el = e.target.closest("[data-go],[data-tpl],[data-filter],[data-scroll],[data-close],[data-bell],[data-chat]");
+    const el = e.target.closest("[data-act],[data-pick],[data-del],[data-aspect],[data-order],[data-go],[data-tpl],[data-filter],[data-scroll],[data-close],[data-bell],[data-chat]");
     if (!el) return;
-    if (el.dataset.tpl) return openSheet(el.dataset.tpl);
+    const act = el.dataset.act;
+    if (act) {
+      if (act === "back") return closeView();
+      if (act === "submit") return submit();
+      if (act === "full" || act === "free") { form.free = act === "free"; form.photos = form.photos.slice(0, slotCount(form)); haptic("select"); return renderCreate(); }
+      if (act === "pay") return pay();
+      if (act === "cancel") return cancelOrder();
+      if (act === "download") return download();
+      if (act === "again") return again();
+      return;
+    }
+    if (el.dataset.pick !== undefined) {
+      pickSlot = el.dataset.pick === "clip" ? "clip" : Number(el.dataset.pick);
+      pick.accept = pickSlot === "clip" ? "video/*" : "image/*";
+      pick.value = "";
+      return pick.click();
+    }
+    if (el.dataset.del !== undefined) {
+      if (el.dataset.del === "clip") form.clip = null; else form.photos[Number(el.dataset.del)] = null;
+      haptic("light");
+      return renderCreate();
+    }
+    if (el.dataset.aspect) { form.aspect = el.dataset.aspect; haptic("select"); return renderCreate(); }
+    if (el.hasAttribute("data-order")) { if (recent) { form = null; setOrder(recent); } return; }
+    if (el.dataset.tpl) {
+      if (LIVE) return openCreate({ kind: "video", tpl: TEMPLATES.find(t => t.id === el.dataset.tpl) || null });
+      return openSheet(el.dataset.tpl);
+    }
     if (el.dataset.filter) return setFilter(el.dataset.filter);
     if (el.hasAttribute("data-close")) return closeSheet();
     if (el.hasAttribute("data-bell")) { haptic("light"); return toast(freeAvailable() ? T.bell_free : T.bell_none); }
@@ -430,13 +974,24 @@
       if (tg && tg.initData) { e.preventDefault(); tg.close(); }  // мы и так в чате с ботом — просто закрываемся
       return;
     }
-    if (el.dataset.scroll) { haptic("select"); return document.getElementById(el.dataset.scroll).scrollIntoView({ behavior: "smooth", block: "start" }); }
+    if (el.dataset.scroll) { haptic("select"); return $(el.dataset.scroll).scrollIntoView({ behavior: "smooth", block: "start" }); }
     const action = el.dataset.go;
     if (action === "free" && !STAFF && FREE_LEFT === 0) { haptic("light"); return alertBox(T.free_used); }
+    if (LIVE && ["create", "swap", "enhance", "free"].includes(action)) {
+      return openCreate(action === "free" ? { kind: "video", free: true } : { kind: action === "create" ? "video" : action });
+    }
     go(action);
   });
-  document.getElementById("backdrop").addEventListener("click", closeSheet);
-  document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
+  view.addEventListener("input", e => {
+    if (!form) return;
+    if (e.target.id === "prompt") { form.prompt = e.target.value; $("counter").textContent = `${form.prompt.length}/500`; renderGo(); }
+  });
+  view.addEventListener("change", e => {
+    if (form && e.target.id === "consent") { form.consent = e.target.checked; renderGo(); }
+  });
+  pick.addEventListener("change", () => onPicked(pick.files && pick.files[0]));
+  $("backdrop").addEventListener("click", closeSheet);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") onBack(); });
 
   // Смахивание карточки вниз
   let startY = null;
@@ -453,10 +1008,12 @@
     tg.expand();
     if (can("6.1")) {
       try { tg.setHeaderColor("#151515"); tg.setBackgroundColor("#151515"); } catch (e) {}
-      tg.BackButton.onClick(closeSheet);
+      tg.BackButton.onClick(onBack);
     }
     if (can("7.10")) { try { tg.setBottomBarColor("#151515"); } catch (e) {} }
   }
+  // Веб-API включён и мы внутри Telegram — заказ целиком здесь; если бот не отвечает, остаёмся в режиме «через чат»
+  if (API && tg && tg.initData) refreshMe();
 })();
 </script>
 </body>
