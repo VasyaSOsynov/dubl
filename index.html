@@ -384,7 +384,7 @@
   const tgLang = ((user && user.language_code) || navigator.language || "ru").toLowerCase();
   let lang = I18N[q.get("l")] ? q.get("l") : (/^(ru|uk|be|kk)/.test(tgLang) ? "ru" : "en");
   let T = I18N[lang];
-  const BOT = /^[A-Za-z0-9_]{5,32}$/.test(q.get("b") || "") ? q.get("b") : "motor_klip_bot";
+  const BOT = /^[A-Za-z0-9_]{5,32}$/.test(q.get("b") || "") ? q.get("b") : "motorclip_bot";
   let PRICE = { video: int("pv", 99), swap: int("ps", 49), enhance: int("pe", 15) };
   let VS = int("vs", 5), SW = int("sw", 10), FREE_PER_DAY = int("fd", 1);
   let HAS_USER = q.has("v");                    // из меню бота — с балансом; из кнопки «Приложение» у поля ввода — без
